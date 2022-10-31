@@ -9,7 +9,6 @@ import warnings
 
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.parallel
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
@@ -18,11 +17,28 @@ import torch.multiprocessing as mp
 from semilearn.algorithms import get_algorithm, name2alg
 from semilearn.imb_algorithms import get_imb_algorithm
 from semilearn.algorithms.utils import str2bool
-from semilearn.core.utils import get_net_builder, get_logger, get_port, send_model_cuda, count_parameters, over_write_args_from_file, TBLog
+from semilearn.core.utils import get_net_builder, get_logger, get_port, send_model_cuda, count_parameters, \
+    over_write_args_from_file, TBLog
 
 
 def get_config():
     parser = argparse.ArgumentParser(description='Semi-Supervised Learning (USB)')
+
+    '''
+    VCC Related
+    '''
+    parser.add_argument('--vcc_z_dim', type=int, default=0)
+    parser.add_argument('--vcc_training_warmup', type=int, default=2 ** 30)
+    parser.add_argument('--vcc_selection_warmup', type=int, default=2 ** 30)
+    parser.add_argument('--vcc_lab_loss_weight', type=float, default=0.0)
+    parser.add_argument('--vcc_unlab_loss_weight', type=float, default=0.0)
+    parser.add_argument('--vcc_p_cutoff', type=float, default=0.95)
+    parser.add_argument('--vcc_only_supervised', type=bool, default=False)
+
+    '''
+    Customized Args
+    '''
+    parser.add_argument('--backbone_temperature_scaling', type=float, default=1.0)
 
     '''
     Saving & loading of the model.
@@ -32,7 +48,8 @@ def get_config():
     parser.add_argument('--resume', action='store_true')
     parser.add_argument('--load_path', type=str)
     parser.add_argument('-o', '--overwrite', action='store_true', default=True)
-    parser.add_argument('--use_tensorboard', action='store_true', help='Use tensorboard to plot and save curves, otherwise save the curves locally.')
+    parser.add_argument('--use_tensorboard', action='store_true',
+                        help='Use tensorboard to plot and save curves, otherwise save the curves locally.')
 
     '''
     Training Configuration of FixMatch
@@ -63,7 +80,8 @@ def get_config():
     parser.add_argument('--lr', type=float, default=3e-2)
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--weight_decay', type=float, default=5e-4)
-    parser.add_argument('--layer_decay', type=float, default=1.0, help='layer-wise learning rate decay, default to 1.0 which means no layer decay')
+    parser.add_argument('--layer_decay', type=float, default=1.0,
+                        help='layer-wise learning rate decay, default to 1.0 which means no layer decay')
 
     '''
     Backbone Net Configurations
@@ -75,7 +93,7 @@ def get_config():
 
     '''
     Algorithms Configurations
-    '''  
+    '''
 
     ## core algorithm setting
     parser.add_argument('-alg', '--algorithm', type=str, default='fixmatch', help='ssl algorithm')
@@ -100,7 +118,8 @@ def get_config():
     ## imbalanced setting arguments
     parser.add_argument('--lb_imb_ratio', type=int, default=1, help="imbalance ratio of labeled data, default to 1")
     parser.add_argument('--ulb_imb_ratio', type=int, default=1, help="imbalance ratio of unlabeled data, default to 1")
-    parser.add_argument('--ulb_num_labels', type=int, default=None, help="number of labels for unlabeled data, used for determining the maximum number of labels in imbalanced setting")
+    parser.add_argument('--ulb_num_labels', type=int, default=None,
+                        help="number of labels for unlabeled data, used for determining the maximum number of labels in imbalanced setting")
 
     ## cv dataset arguments
     parser.add_argument('--img_size', type=int, default=32)
@@ -128,8 +147,7 @@ def get_config():
                         help='distributed backend')
     parser.add_argument('--seed', default=1, type=int,
                         help='seed for initializing training. ')
-    parser.add_argument('--gpu', default=None, type=int,
-                        help='GPU id to use.')
+    parser.add_argument('--gpu', default=None, type=int, nargs='+', help='GPU id to use.')
     parser.add_argument('--multiprocessing-distributed', type=str2bool, default=False,
                         help='Use multi-processing distributed training to launch '
                              'N processes per node, which has N GPUs. This is the '
@@ -147,7 +165,6 @@ def get_config():
     args = parser.parse_args()
     over_write_args_from_file(args, args.c)
     return args
-
 
 
 def main(args):
@@ -178,7 +195,7 @@ def main(args):
                       'which can slow down your training considerably! '
                       'You may see unexpected behavior when restarting '
                       'from checkpoints.')
-    
+
     if args.gpu == 'None':
         args.gpu = None
     if args.gpu is not None:
@@ -190,7 +207,16 @@ def main(args):
 
     # distributed: true if manually selected or if world_size > 1
     args.distributed = args.world_size > 1 or args.multiprocessing_distributed
+    if args.gpu is not None:
+        os.environ["CUDA_VISIBLE_DEVICES"] = "4, 5, 6, 7"
+        import torch
+
     ngpus_per_node = torch.cuda.device_count()  # number of gpus of each node
+
+    if args.gpu is not None:
+        ngpus_per_node = len(args.gpu)
+        os.environ["CUDA_VISIBLE_DEVICES"] = "4, 5, 6, 7"
+        args.gpu = None
 
     if args.multiprocessing_distributed:
         # now, args.world_size means num of total processes in all nodes
@@ -259,7 +285,7 @@ def main_worker(gpu, ngpus_per_node, args):
         try:
             model.load_model(args.load_path)
         except:
-            logger.info("Fail to resume load path {}".format(args.load_path))    
+            logger.info("Fail to resume load path {}".format(args.load_path))
             args.resume = False
     else:
         logger.info("Resume load path {} does not exist".format(args.load_path))

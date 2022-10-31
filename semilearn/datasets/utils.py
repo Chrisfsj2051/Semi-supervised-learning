@@ -39,6 +39,7 @@ def split_ssl_data(args, data, targets, num_classes,
     if ulb_index is not None:
         ulb_idx = ulb_index
 
+    lb_idx, ulb_idx = lb_idx.astype(np.int64), ulb_idx.astype(np.int64)
     if include_lb_to_ulb:
         ulb_idx = np.concatenate([lb_idx, ulb_idx], axis=0)
     

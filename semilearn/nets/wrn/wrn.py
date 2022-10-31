@@ -76,6 +76,7 @@ class NetworkBlock(nn.Module):
 class WideResNet(nn.Module):
     def __init__(self, first_stride, num_classes, depth=28, widen_factor=2, drop_rate=0.0, **kwargs):
         super(WideResNet, self).__init__()
+        self.temperature_scaling = kwargs['args'].backbone_temperature_scaling
         channels = [16, 16 * widen_factor, 32 * widen_factor, 64 * widen_factor]
         assert ((depth - 4) % 6 == 0)
         n = (depth - 4) / 6
@@ -132,7 +133,7 @@ class WideResNet(nn.Module):
         if only_feat:
             return out
         
-        output = self.fc(out)
+        output = self.fc(out) * self.temperature_scaling
         result_dict = {'logits':output, 'feat':out}
         return result_dict
 

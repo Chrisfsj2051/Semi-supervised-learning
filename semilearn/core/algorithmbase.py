@@ -14,6 +14,7 @@ from torch.cuda.amp import autocast, GradScaler
 
 from semilearn.core.hooks import Hook, get_priority, CheckpointHook, TimerHook, LoggingHook, DistSamplerSeedHook, ParamUpdateHook, EvaluationHook, EMAHook
 from semilearn.core.utils import get_dataset, get_data_loader, get_optimizer, get_cosine_schedule_with_warmup, Bn_Controller
+from semilearn.core.utils import maximum_calibration_error, expected_calibration_error, average_calibration_error
 
 
 class AlgorithmBase:
@@ -163,14 +164,14 @@ class AlgorithmBase:
         return optimizer, scheduler
 
     def set_model(self):
-        model = self.net_builder(num_classes=self.num_classes, pretrained=self.args.use_pretrain, pretrained_path=self.args.pretrain_path)
+        model = self.net_builder(num_classes=self.num_classes, pretrained=self.args.use_pretrain, pretrained_path=self.args.pretrain_path, args=self.args)
         return model
 
     def set_ema_model(self):
         """
         initialize ema model from model
         """
-        ema_model = self.net_builder(num_classes=self.num_classes)
+        ema_model = self.net_builder(num_classes=self.num_classes, args=self.args)
         ema_model.load_state_dict(self.model.state_dict())
         return ema_model
 
@@ -255,24 +256,17 @@ class AlgorithmBase:
 
         self.call_hook("after_run")
 
-    def evaluate(self, eval_dest='eval', return_logits=False):
-        """
-        evaluation function
-        """
+    def predict(self, eval_dest):
         self.model.eval()
         self.ema.apply_shadow()
         eval_loader = self.loader_dict[eval_dest]
-        total_loss = 0.0
-        total_num = 0.0
-        y_true = []
-        y_pred = []
-        # y_probs = []
-        y_logits = []
+        total_loss, total_num = 0.0, 0.0
+        y_true, y_pred, y_probs, y_logits = [], [], [], []
         with torch.no_grad():
             for data in eval_loader:
                 x = data['x_lb']
                 y = data['y_lb']
-                
+
                 if isinstance(x, dict):
                     x = {k: v.cuda(self.gpu) for k, v in x.items()}
                 else:
@@ -283,29 +277,45 @@ class AlgorithmBase:
                 total_num += num_batch
 
                 logits = self.model(x)['logits']
-                
+
                 loss = F.cross_entropy(logits, y, reduction='mean')
                 y_true.extend(y.cpu().tolist())
                 y_pred.extend(torch.max(logits, dim=-1)[1].cpu().tolist())
                 y_logits.append(logits.cpu().numpy())
-                # y_probs.append(torch.softmax(logits, dim=-1).cpu().numpy())
+                y_probs.append(torch.softmax(logits, dim=-1).cpu().numpy())
                 total_loss += loss.item() * num_batch
+
+        self.ema.restore()
+        self.model.train()
         y_true = np.array(y_true)
         y_pred = np.array(y_pred)
         y_logits = np.concatenate(y_logits)
+        y_probs = np.concatenate(y_probs)
+        return y_true, y_pred, y_logits, y_probs, total_loss, total_num
+
+    def evaluate(self, eval_dest='eval', return_logits=False):
+        """
+        evaluation function
+        """
+        y_true, y_pred, y_logits, y_probs, total_loss, total_num = self.predict(eval_dest)
         top1 = accuracy_score(y_true, y_pred)
         balanced_top1 = balanced_accuracy_score(y_true, y_pred)
         precision = precision_score(y_true, y_pred, average='macro')
         recall = recall_score(y_true, y_pred, average='macro')
         F1 = f1_score(y_true, y_pred, average='macro')
 
+        confs = torch.FloatTensor(y_probs).max(1)[0]
+        y_pred_long, y_true_long = torch.LongTensor(y_pred), torch.LongTensor(y_true)
+        ece = expected_calibration_error(confs, y_pred_long, y_true_long).item()
+        mce = maximum_calibration_error(confs, y_pred_long, y_true_long).item()
+        ace = average_calibration_error(confs, y_pred_long, y_true_long).item()
         cf_mat = confusion_matrix(y_true, y_pred, normalize='true')
         self.print_fn('confusion matrix:\n' + np.array_str(cf_mat))
-        self.ema.restore()
-        self.model.train()
 
         eval_dict = {eval_dest+'/loss': total_loss / total_num, eval_dest+'/top-1-acc': top1, 
-                     eval_dest+'/balanced_acc': balanced_top1, eval_dest+'/precision': precision, eval_dest+'/recall': recall, eval_dest+'/F1': F1}
+                     eval_dest+'/balanced_acc': balanced_top1, eval_dest+'/precision': precision,
+                     eval_dest+'/recall': recall, eval_dest+'/F1': F1, eval_dest+'/ece': ece,
+                     eval_dest+'/mce': mce, eval_dest+'/ace': ace}
         if return_logits:
             eval_dict[eval_dest+'/logits'] = y_logits
         return eval_dict

@@ -7,6 +7,7 @@ import torch.nn as nn
 import ruamel.yaml as yaml
 from torch.utils.tensorboard import SummaryWriter
 
+
 def over_write_args_from_dict(args, dict):
     """
     overwrite arguments acocrding to config file
@@ -24,6 +25,8 @@ def over_write_args_from_file(args, yml):
     with open(yml, 'r', encoding='utf-8') as f:
         dic = yaml.load(f.read(), Loader=yaml.Loader)
         for k in dic:
+            if k == 'gpu':
+                dic[k] = [int(x) for x in dic[k].split(',')]
             setattr(args, k, dic[k])
 
 
@@ -52,15 +55,14 @@ def send_model_cuda(args, model):
             args.batch_size = int(args.batch_size / ngpus_per_node)
             model.cuda(args.gpu)
             model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
-            model = torch.nn.parallel.DistributedDataParallel(model, broadcast_buffers=False,
-                                                                     find_unused_parameters=True,
-                                                                     device_ids=[args.gpu])
+            model = torch.nn.parallel.DistributedDataParallel(
+                model, find_unused_parameters=True, device_ids=[args.gpu])
         else:
             # if arg.gpu is None, DDP will divide and allocate batch_size
             # to all available GPUs if device_ids are not set.
             model.cuda()
-            model = torch.nn.parallel.DistributedDataParallel(model,  broadcast_buffers=False, 
-                                                                      find_unused_parameters=True)
+            model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
+            model = torch.nn.parallel.DistributedDataParallel(model, find_unused_parameters=True)
     elif args.gpu is not None:
         torch.cuda.set_device(args.gpu)
         model = model.cuda(args.gpu)
@@ -85,7 +87,6 @@ class TBLog:
         self.use_tensorboard = use_tensorboard
         if self.use_tensorboard:
             self.writer = SummaryWriter(os.path.join(self.tb_dir, file_name))
-            
 
     def update(self, tb_dict, it, suffix=None, mode="train"):
         """
@@ -105,6 +106,7 @@ class Bn_Controller:
     """
     Batch Norm controler
     """
+
     def __init__(self):
         """
         freeze_bn and unfreeze_bn must appear in pairs
