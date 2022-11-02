@@ -25,8 +25,6 @@ def over_write_args_from_file(args, yml):
     with open(yml, 'r', encoding='utf-8') as f:
         dic = yaml.load(f.read(), Loader=yaml.Loader)
         for k in dic:
-            if k == 'gpu':
-                dic[k] = [int(x) for x in dic[k].split(',')]
             setattr(args, k, dic[k])
 
 

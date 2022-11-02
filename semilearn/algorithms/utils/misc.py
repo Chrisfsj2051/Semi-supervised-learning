@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 import argparse
-import torch.nn as nn 
 
 
 class SSL_Argument(object):

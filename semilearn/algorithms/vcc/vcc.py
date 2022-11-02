@@ -20,8 +20,8 @@ class VCC(FlexMatch):
         self.only_supervised = args.vcc_only_supervised
 
     def compute_vcc_loss(self, recon_pred, recon_gt, logvar, mu, mask):
-        recon_r_ulb_w_log_softmax = torch.log_softmax(recon_pred, -1)
-        recon_loss = (torch.mean(-recon_gt * recon_r_ulb_w_log_softmax, 1) * mask).mean()
+        recon_r_log_softmax = torch.log_softmax(recon_pred, -1)
+        recon_loss = (torch.mean(-recon_gt * recon_r_log_softmax, 1) * mask).mean()
         kl_loss = (-0.5 * torch.sum(1 + logvar - mu ** 2 - logvar.exp(), dim=1) * mask).mean()
         return {
             'recon_loss': recon_loss.mean(),
@@ -77,7 +77,8 @@ class VCC(FlexMatch):
             vcc_loss_ulb_w = self.compute_vcc_loss(recon_pred_ulb_w, recon_gt_ulb_w, logvar_ulb_w, mu_ulb_w, mask)
             recon_loss_ulb_w = vcc_loss_ulb_w['recon_loss'] * vcc_unlab_loss_weight
             kl_loss_ulb_w = vcc_loss_ulb_w['kl_loss'] * vcc_unlab_loss_weight
-            vcc_loss_lb = self.compute_vcc_loss(recon_pred_lb, recon_gt_lb, logvar_lb, mu_lb, torch.ones_like(mask))
+            vcc_loss_lb = self.compute_vcc_loss(recon_pred_lb, recon_gt_lb, logvar_lb, mu_lb,
+                                                mask.new_ones(recon_pred_lb.shape[0]))
             recon_loss_lb = vcc_loss_lb['recon_loss'] * vcc_lab_loss_weight
             kl_loss_lb = vcc_loss_lb['kl_loss'] * vcc_lab_loss_weight
             total_loss = (sup_loss + unsup_loss + recon_loss_ulb_w +

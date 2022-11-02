@@ -69,35 +69,10 @@ def get_cifar(args, alg, name, num_labels, num_classes, data_dir='./data', inclu
         ulb_count[c] += 1
     print("lb count: {}".format(lb_count))
     print("ulb count: {}".format(ulb_count))
-    # lb_count = lb_count / lb_count.sum()
-    # ulb_count = ulb_count / ulb_count.sum()
-    # args.lb_class_dist = lb_count
-    # args.ulb_class_dist = ulb_count
 
     if alg == 'fullysupervised':
         lb_data = data
         lb_targets = targets
-        # if len(ulb_data) == len(data):
-        #     lb_data = ulb_data 
-        #     lb_targets = ulb_targets
-        # else:
-        #     lb_data = np.concatenate([lb_data, ulb_data], axis=0)
-        #     lb_targets = np.concatenate([lb_targets, ulb_targets], axis=0)
-    
-    # output the distribution of labeled data for remixmatch
-    # count = [0 for _ in range(num_classes)]
-    # for c in lb_targets:
-    #     count[c] += 1
-    # dist = np.array(count, dtype=float)
-    # dist = dist / dist.sum()
-    # dist = dist.tolist()
-    # out = {"distribution": dist}
-    # output_file = r"./data_statistics/"
-    # output_path = output_file + str(name) + '_' + str(num_labels) + '.json'
-    # if not os.path.exists(output_file):
-    #     os.makedirs(output_file, exist_ok=True)
-    # with open(output_path, 'w') as w:
-    #     json.dump(out, w)
 
     lb_dset = BasicDataset(alg, lb_data, lb_targets, num_classes, transform_weak, False, None, False)
 

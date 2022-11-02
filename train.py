@@ -147,7 +147,8 @@ def get_config():
                         help='distributed backend')
     parser.add_argument('--seed', default=1, type=int,
                         help='seed for initializing training. ')
-    parser.add_argument('--gpu', default=None, type=int, nargs='+', help='GPU id to use.')
+    parser.add_argument('--gpu', default=None, type=int,
+                        help='GPU id to use.')
     parser.add_argument('--multiprocessing-distributed', type=str2bool, default=False,
                         help='Use multi-processing distributed training to launch '
                              'N processes per node, which has N GPUs. This is the '
@@ -164,6 +165,9 @@ def get_config():
 
     args = parser.parse_args()
     over_write_args_from_file(args, args.c)
+    gpu_count = torch.cuda.device_count()
+    assert args.batch_size % gpu_count == 0
+    args.batch_size = args.batch_size // gpu_count
     return args
 
 
@@ -207,16 +211,7 @@ def main(args):
 
     # distributed: true if manually selected or if world_size > 1
     args.distributed = args.world_size > 1 or args.multiprocessing_distributed
-    if args.gpu is not None:
-        os.environ["CUDA_VISIBLE_DEVICES"] = "4, 5, 6, 7"
-        import torch
-
     ngpus_per_node = torch.cuda.device_count()  # number of gpus of each node
-
-    if args.gpu is not None:
-        ngpus_per_node = len(args.gpu)
-        os.environ["CUDA_VISIBLE_DEVICES"] = "4, 5, 6, 7"
-        args.gpu = None
 
     if args.multiprocessing_distributed:
         # now, args.world_size means num of total processes in all nodes
