@@ -39,6 +39,7 @@ def get_config():
     Customized Args
     '''
     parser.add_argument('--backbone_temperature_scaling', type=float, default=1.0)
+    parser.add_argument('--save_interval', type=int, default=1000000000000)
 
     '''
     Saving & loading of the model.

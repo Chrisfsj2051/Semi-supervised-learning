@@ -80,3 +80,9 @@ def vcc_wrn_28_2(pretrained=False, pretrained_path=None, args=None, num_classes=
     model = VariationalConfidenceCalibration(base_model, args, num_classes)
     assert not pretrained_path
     return model
+
+def vcc_wrn_28_8(pretrained=False, pretrained_path=None, args=None, num_classes=0, **kwargs):
+    base_model = wrn_28_8(pretrained, pretrained_path, args=args, num_classes=num_classes, **kwargs)
+    model = VariationalConfidenceCalibration(base_model, args, num_classes)
+    assert not pretrained_path
+    return model

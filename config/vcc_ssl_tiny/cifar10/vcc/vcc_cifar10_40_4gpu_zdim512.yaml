@@ -1,3 +1,4 @@
+# 94.67
 algorithm: vcc
 save_dir: ./saved_models/vcc_ssl_tiny/cifar10/vcc
 save_name: vcc_cifar10_40_4gpu_zdim512
@@ -13,6 +14,7 @@ overwrite: True
 use_tensorboard: True
 epoch: 1000
 num_train_iter: 300000
+save_interval: 25000
 num_eval_iter: 1000
 num_labels: 40
 batch_size: 64

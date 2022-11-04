@@ -26,4 +26,7 @@ class CheckpointHook(Hook):
                 if algorithm.algorithm == 'vcc' and algorithm.it == algorithm.vcc_training_warmup:
                     algorithm.save_model('model_vcc_training_init.pth', save_path)
 
+                if (algorithm.it + 1) % algorithm.args.save_interval == 0:
+                    algorithm.save_model(f'model_{algorithm.it+1:010d}.pth', save_path)
+
         
