@@ -291,3 +291,19 @@ class ClasswiseECELoss(nn.Module):
 
         sce = torch.mean(per_class_sce)
         return sce
+
+def adaptive_expected_calibration_error(logits, labels, num_bins=15):
+    logits = torch.Tensor(logits)
+    labels = torch.Tensor(labels)
+    caculator = AdaptiveECELoss(num_bins)
+    with torch.no_grad():
+        ada_ece = caculator(logits, labels)
+    return ada_ece.cpu().detach()
+
+def classwise_expected_calibration_error(logits, labels, num_bins=15):
+    logits = torch.Tensor(logits)
+    labels = torch.Tensor(labels)
+    caculator = ClasswiseECELoss(num_bins)
+    with torch.no_grad():
+        ada_ece = caculator(logits, labels)
+    return ada_ece.cpu().detach()

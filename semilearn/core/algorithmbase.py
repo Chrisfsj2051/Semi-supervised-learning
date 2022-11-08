@@ -14,7 +14,7 @@ from torch.cuda.amp import autocast, GradScaler
 
 from semilearn.core.hooks import Hook, get_priority, CheckpointHook, TimerHook, LoggingHook, DistSamplerSeedHook, ParamUpdateHook, EvaluationHook, EMAHook
 from semilearn.core.utils import get_dataset, get_data_loader, get_optimizer, get_cosine_schedule_with_warmup, Bn_Controller
-from semilearn.core.utils import maximum_calibration_error, expected_calibration_error, average_calibration_error
+from semilearn.core.utils import maximum_calibration_error, expected_calibration_error, average_calibration_error, adaptive_expected_calibration_error, classwise_expected_calibration_error
 
 
 class AlgorithmBase:
@@ -309,12 +309,15 @@ class AlgorithmBase:
         ece = expected_calibration_error(confs, y_pred_long, y_true_long).item()
         mce = maximum_calibration_error(confs, y_pred_long, y_true_long).item()
         ace = average_calibration_error(confs, y_pred_long, y_true_long).item()
+        ada_ece = adaptive_expected_calibration_error(y_logits, y_true_long).item()
+        classwise_ece = classwise_expected_calibration_error(y_logits, y_true_long).item()
         cf_mat = confusion_matrix(y_true, y_pred, normalize='true')
         self.print_fn('confusion matrix:\n' + np.array_str(cf_mat))
 
         eval_dict = {eval_dest+'/loss': total_loss / total_num, eval_dest+'/top-1-acc': top1, 
                      eval_dest+'/balanced_acc': balanced_top1, eval_dest+'/precision': precision,
                      eval_dest+'/recall': recall, eval_dest+'/F1': F1, eval_dest+'/ece': ece,
+                     eval_dest + '/ada_ece': ada_ece, eval_dest + '/classwise_ece': classwise_ece,
                      eval_dest+'/mce': mce, eval_dest+'/ace': ace}
         if return_logits:
             eval_dict[eval_dest+'/logits'] = y_logits

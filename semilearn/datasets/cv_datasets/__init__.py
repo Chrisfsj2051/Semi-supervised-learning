@@ -3,6 +3,7 @@
 
 from .aves import get_semi_aves
 from .cifar import get_cifar
+from .class_mismatch import get_class_mismatch_cifar
 from .eurosat import get_eurosat
 from .imagenet import get_imagenet
 from .medmnist import get_medmnist

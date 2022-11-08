@@ -2,14 +2,11 @@
 # Licensed under the MIT License.
 
 import os
-import json
 import torchvision
-import numpy as np
-import math
 
 from torchvision import transforms
 from .datasetbase import BasicDataset
-from semilearn.datasets.augmentation import RandAugment, RandomResizedCropAndInterpolation
+from semilearn.datasets.augmentation import RandAugment
 from semilearn.datasets.utils import split_ssl_data
 
 

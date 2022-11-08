@@ -36,6 +36,11 @@ def get_config():
     parser.add_argument('--vcc_only_supervised', type=bool, default=False)
 
     '''
+    Additional Dataset Args
+    '''
+    parser.add_argument('--class_mismatch_ratio', type=float, default=0)
+
+    '''
     Customized Args
     '''
     parser.add_argument('--backbone_temperature_scaling', type=float, default=1.0)
