@@ -1,4 +1,5 @@
 from semilearn.nets.wrn.wrn import wrn_28_2, wrn_28_8
+from semilearn.nets.wrn.wrn_var import wrn_var_37_2
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
@@ -83,6 +84,12 @@ def vcc_wrn_28_2(pretrained=False, pretrained_path=None, args=None, num_classes=
 
 def vcc_wrn_28_8(pretrained=False, pretrained_path=None, args=None, num_classes=0, **kwargs):
     base_model = wrn_28_8(pretrained, pretrained_path, args=args, num_classes=num_classes, **kwargs)
+    model = VariationalConfidenceCalibration(base_model, args, num_classes)
+    assert not pretrained_path
+    return model
+
+def vcc_wrn_var_37_2(pretrained=False, pretrained_path=None, args=None, num_classes=0, **kwargs):
+    base_model = wrn_var_37_2(pretrained, pretrained_path, args=args, num_classes=num_classes, **kwargs)
     model = VariationalConfidenceCalibration(base_model, args, num_classes)
     assert not pretrained_path
     return model

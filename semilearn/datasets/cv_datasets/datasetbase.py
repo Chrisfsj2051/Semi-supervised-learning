@@ -85,7 +85,10 @@ class BasicDataset(Dataset):
             if not self.is_ulb:
                 return {'idx_lb': idx, 'x_lb': img_w, 'y_lb': target} 
             else:
-                if self.alg == 'fullysupervised' or self.alg == 'supervised':
+                if self.alg == 'evaluation':
+                    return {'idx_ulb': idx, 'x_ulb_w': img_w, 'x_ulb_s': self.strong_transform(img),
+                            'y_ulb': target}
+                elif self.alg == 'fullysupervised' or self.alg == 'supervised':
                     return {'idx_ulb': idx}
                 elif self.alg == 'pseudolabel' or self.alg == 'vat':
                     return {'idx_ulb': idx, 'x_ulb_w':img_w} 

@@ -230,6 +230,7 @@ class AlgorithmBase:
         train function
         """
         self.model.train()
+        # set self.ema here
         self.call_hook("before_run")
 
         for epoch in range(self.epochs):

@@ -1,7 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="v100" autoUploadExternalChanges="true">
+  <component name="PublishConfigData" autoUpload="Always" serverName="v100" confirmBeforeUploading="false" autoUploadExternalChanges="true">
+    <option name="confirmBeforeUploading" value="false" />
     <serverData>
+      <paths name="pku-2080ti">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/fangshijie/workspace/Semi-supervised-learning" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
       <paths name="v100">
         <serverdata>
           <mappings>
