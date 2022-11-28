@@ -36,6 +36,13 @@ def get_config():
     parser.add_argument('--vcc_only_supervised', type=bool, default=False)
 
     '''
+    Data diet
+    '''
+    parser.add_argument('--datadiet_interval', type=int, default=2 ** 30)
+    parser.add_argument('--datadiet_drop_ratio', type=float, default=0.0)
+    parser.add_argument('--datadiet_method', type=str, default=None)
+
+    '''
     Additional Dataset Args
     '''
     parser.add_argument('--class_mismatch_ratio', type=float, default=0)

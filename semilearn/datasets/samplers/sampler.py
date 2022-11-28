@@ -48,6 +48,7 @@ class DistributedSampler(Sampler):
         self.num_replicas = num_replicas
         self.rank = rank
         self.epoch = 0
+        self.pruned_indices = None
 
         self.total_size = num_samples
         assert num_samples % self.num_replicas == 0, f'{num_samples} samples cant' \
@@ -55,6 +56,9 @@ class DistributedSampler(Sampler):
         self.num_samples = int(num_samples // self.num_replicas)
 
     def __iter__(self):
+        if self.pruned_indices is not None:
+            return iter(self.pruned_indices)
+
         # deterministically shuffle based on epoch
         g = torch.Generator()
         g.manual_seed(self.epoch)
@@ -79,6 +83,9 @@ class DistributedSampler(Sampler):
 
     def set_epoch(self, epoch):
         self.epoch = epoch
+
+    def set_pruned_indices(self, pruned_indices):
+        self.pruned_indices = pruned_indices
 
 
 class ImageNetDistributedSampler(DistributedSampler):
