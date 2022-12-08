@@ -10,6 +10,13 @@
           </mappings>
         </serverdata>
       </paths>
+      <paths name="ubuntu">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/nirvana/workspace/PycharmProjects/Semi-supervised-learning" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
       <paths name="v100">
         <serverdata>
           <mappings>
