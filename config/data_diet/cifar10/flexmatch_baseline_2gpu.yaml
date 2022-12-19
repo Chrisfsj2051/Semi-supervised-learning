@@ -2,7 +2,6 @@ algorithm: flexmatch
 save_dir: ./saved_models/data_diet/cifar10/
 save_name: flexmatch_cifar10_40_baseline_2gpu
 resume: False
-datadiet_drop_ratio: 0.0
 load_path: None
 overwrite: False
 use_tensorboard: True

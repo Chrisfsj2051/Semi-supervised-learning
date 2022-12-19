@@ -97,6 +97,7 @@ class ImageNetDistributedSampler(DistributedSampler):
             self.dataset = np.array(dataset_idx)
 
     def __iter__(self):
+        raise NotImplementedError("")
         # deterministically shuffle based on epoch
         g = torch.Generator()
         g.manual_seed(self.epoch)

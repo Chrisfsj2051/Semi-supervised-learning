@@ -50,7 +50,8 @@ def send_model_cuda(args, model):
             batch_size: batch_size per node -> batch_size per gpu
             workers: workers per node -> workers per gpu
             '''
-            args.batch_size = int(args.batch_size / ngpus_per_node)
+            # trian.py, line181
+            # args.batch_size = int(args.batch_size / ngpus_per_node)
             model.cuda(args.gpu)
             model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
             model = torch.nn.parallel.DistributedDataParallel(
@@ -58,6 +59,7 @@ def send_model_cuda(args, model):
         else:
             # if arg.gpu is None, DDP will divide and allocate batch_size
             # to all available GPUs if device_ids are not set.
+            raise NotImplementedError
             model.cuda()
             model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
             model = torch.nn.parallel.DistributedDataParallel(model, find_unused_parameters=True)

@@ -190,7 +190,7 @@ class AlgorithmBase:
         # for hooks to be called in train_step, name it for simpler calling
         self.register_hook(ParamUpdateHook(), "ParamUpdateHook")
 
-        if self.args.datadiet_drop_ratio > 0.0:
+        if self.args.datadiet_method is not None:
             self.register_hook(DataDietHook(), "DataDietHook")
 
     def process_batch(self, **kwargs):
@@ -431,7 +431,6 @@ class AlgorithmBase:
             hook_name (str): The specific hook name to be called, such as
                 "param_update" or "dist_align", uesed to call single hook in train_step.
         """
-        
         if hook_name is not None:
             return getattr(self.hooks_dict[hook_name], fn_name)(self, *args, **kwargs)
         

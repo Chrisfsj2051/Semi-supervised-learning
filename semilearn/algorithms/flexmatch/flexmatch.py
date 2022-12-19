@@ -50,6 +50,9 @@ class FlexMatch(AlgorithmBase):
         self.use_hard_label = hard_label
         self.thresh_warmup = thresh_warmup
 
+    def get_threshold(self):
+        return self.call_hook("get_threshold", "MaskingHook")
+
     def set_hooks(self):
         self.register_hook(PseudoLabelingHook(), "PseudoLabelingHook")
         self.register_hook(FlexMatchThresholdingHook(ulb_dest_len=self.args.ulb_dest_len, num_classes=self.num_classes, thresh_warmup=self.args.thresh_warmup), "MaskingHook")

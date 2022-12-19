@@ -35,6 +35,9 @@ class FlexMatchThresholdingHook(MaskingHook):
                 for i in range(self.num_classes):
                     self.classwise_acc[i] = pseudo_counter[i] / max(wo_negative_one.values())
 
+    def get_threshold(self, algorithm):
+        return algorithm.p_cutoff * (self.classwise_acc / (2. - self.classwise_acc))
+
     @torch.no_grad()
     def masking(self, algorithm, logits_x_ulb, idx_ulb, softmax_x_ulb=True, *args, **kwargs):
         if not self.selected_label.is_cuda:

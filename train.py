@@ -1,8 +1,16 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import argparse
 import os
+os.environ['CUDA_VISIBLE_DEVICES'] = "0,1"
+
+for _ in range(4):
+    print('USE GPU 0-3!!!!!!!!!!!!!!!!')
+
+# import hfai_env
+# hfai_env.set_env('ssl')
+
+import argparse
 import logging
 import random
 import warnings
@@ -39,7 +47,7 @@ def get_config():
     Data diet
     '''
     parser.add_argument('--datadiet_interval', type=int, default=2 ** 30)
-    parser.add_argument('--datadiet_drop_ratio', type=float, default=0.0)
+    parser.add_argument('--datadiet_keep_num', type=int, default=2 ** 30)
     parser.add_argument('--datadiet_method', type=str, default=None)
 
     '''
