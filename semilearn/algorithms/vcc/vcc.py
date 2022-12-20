@@ -18,6 +18,10 @@ class VCC(FlexMatch):
         self.vcc_unlab_loss_weight = args.vcc_unlab_loss_weight
         self.vcc_lab_loss_weight = args.vcc_lab_loss_weight
         self.only_supervised = args.vcc_only_supervised
+        num_ulb = len(self.dataset_dict['train_ulb'])
+        self.uncertainty_selected = torch.zeros(num_ulb)
+        self.uncertainty_ema_map = torch.zeros(num_ulb, args.num_classes)
+        self.uncertainty_ema_step = args.vcc_mcdropout_upd_ratio
 
     def compute_vcc_loss(self, recon_pred, recon_gt, logvar, mu, mask):
         recon_r_log_softmax = torch.log_softmax(recon_pred, -1)
@@ -27,6 +31,14 @@ class VCC(FlexMatch):
             'recon_loss': recon_loss.mean(),
             'kl_loss': kl_loss.mean()
         }
+
+    def update_uncertainty_map(self, idx_ulb, recon_gt_ulb_w):
+        update_weight = torch.ones_like(recon_gt_ulb_w)
+        update_weight[self.uncertainty_selected[idx_ulb] == 1] = self.uncertainty_ema_step
+        self.uncertainty_selected[idx_ulb] = 1
+        updated_value = update_weight * recon_gt_ulb_w + (1 - update_weight) * self.uncertainty_ema_map[idx_ulb].cuda()
+        self.uncertainty_ema_map[idx_ulb] = updated_value.cpu()
+        return updated_value
 
     def train_step(self, x_lb, y_lb, idx_ulb, x_ulb_w, x_ulb_s):
         num_lb = y_lb.shape[0]
@@ -74,6 +86,7 @@ class VCC(FlexMatch):
 
             unsup_loss = self.lambda_u * consistency_loss(logits_x_ulb_s, pseudo_label, 'ce', mask=mask)
 
+            recon_gt_ulb_w = self.update_uncertainty_map(idx_ulb, recon_gt_ulb_w)
             vcc_loss_ulb_w = self.compute_vcc_loss(recon_pred_ulb_w, recon_gt_ulb_w, logvar_ulb_w, mu_ulb_w, mask)
             recon_loss_ulb_w = vcc_loss_ulb_w['recon_loss'] * vcc_unlab_loss_weight
             kl_loss_ulb_w = vcc_loss_ulb_w['kl_loss'] * vcc_unlab_loss_weight

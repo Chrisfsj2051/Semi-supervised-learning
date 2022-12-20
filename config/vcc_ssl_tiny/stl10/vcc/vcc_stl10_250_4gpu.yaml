@@ -1,6 +1,6 @@
 algorithm: vcc
 save_dir: ./saved_models/vcc_ssl_tiny/stl10/vcc
-save_name: vcc_stl10_40_4gpu
+save_name: vcc_stl10_250_4gpu
 resume: False
 load_path: None
 vcc_training_warmup: 50000
@@ -15,7 +15,7 @@ epoch: 1000
 num_train_iter: 300000
 num_eval_iter: 10000
 save_interval: 10000
-num_labels: 40
+num_labels: 250
 batch_size: 64
 eval_batch_size: 256
 hard_label: True

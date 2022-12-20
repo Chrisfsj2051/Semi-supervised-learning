@@ -2,7 +2,7 @@
 <module type="PYTHON_MODULE" version="4">
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$" />
-    <orderEntry type="jdk" jdkName="v100_ssl (sftp://fangshijie@120.92.112.76:22/home/fangshijie/anaconda3/envs/ssl/bin/python)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="hfai_ssl (sftp://nirvana@cn-cd-dx-1.natfrp.cloud:29817/home/nirvana/hfai_envs/ssl_0/bin/python)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PyDocumentationSettings">

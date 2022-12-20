@@ -1,15 +1,9 @@
-algorithm: vcc
-save_dir: ./saved_models/vcc_ssl_tiny/stl10/vcc
-save_name: vcc_stl10_40_4gpu
+algorithm: flexmatch
+save_dir: ./saved_models/vcc_ssl_tiny/stl10/baseline
+save_name: flexmatch_stl10_40_4gpu
 resume: False
 load_path: None
-vcc_training_warmup: 50000
-vcc_selection_warmup: 100000
-vcc_lab_loss_weight: 0.0
-vcc_unlab_loss_weight: 5.0
-vcc_z_dim: 1024
-vcc_p_cutoff: 0.75
-overwrite: False
+overwrite: True
 use_tensorboard: True
 epoch: 1000
 num_train_iter: 300000
@@ -35,7 +29,7 @@ layer_decay: 1.0
 amp: False
 clip: 0.0
 use_cat: True
-net: vcc_wrn_var_37_2
+net: wrn_var_37_2
 net_from_name: False
 data_dir: ./data
 dataset: stl10
@@ -46,7 +40,7 @@ seed: 0
 world_size: 1
 rank: 0
 multiprocessing_distributed: True
-dist_url: tcp://127.0.0.1:10002
+dist_url: tcp://127.0.0.1:10001
 dist_backend: nccl
 gpu: None
 num_log_iter: 100
