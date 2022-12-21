@@ -14,6 +14,8 @@ class VariationalConfidenceCalibration(nn.Module):
         self.base_net = base_net
         self.z_dim = args.vcc_z_dim
         self.dropout_keep_p = args.vcc_mcdropout_keep_p
+        self.detach_input = args.vcc_detach_input
+
         encoder_dims = [num_classes + base_net.channels] + args.vcc_encoder_dims + [2 * self.z_dim]
         decoder_dims = [num_classes + base_net.channels + self.z_dim] + args.vcc_decoder_dims + [self.num_classes]
         encoder_list, decoder_list = [], []
@@ -53,19 +55,22 @@ class VariationalConfidenceCalibration(nn.Module):
         assert not only_feat
         backbone_output = self.base_net(x, only_fc, only_feat, **kwargs)
         logits, feats = backbone_output['logits'], backbone_output['feat']
-
         cali_gt_label = self.calc_uncertainty(x, feats)
         encoder_x = torch.cat([logits, feats], 1)
+
+        if self.detach_input:
+            encoder_x = encoder_x.detach()
+
         h = self.encoder(encoder_x)
         mu, logvar = h.chunk(2, dim=1)
         z = self.reparameterise(mu, logvar)
-        recon_r = self.decoder(torch.cat([logits, feats, z], 1))
+        recon_r = self.decoder(torch.cat([encoder_x, z], 1))
 
         with torch.no_grad():
             h = torch.randn(x.shape[0], self.z_dim * 2).to(x.device)
             sample_mu, sample_logvar = h.chunk(2, dim=1)
             z = self.reparameterise(sample_mu, sample_logvar)
-            decode_input = torch.cat([logits, feats, z], 1)
+            decode_input = torch.cat([encoder_x, z], 1)
             cali_output = self.decoder(decode_input)
 
         return {
