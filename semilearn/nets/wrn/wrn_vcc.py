@@ -13,20 +13,22 @@ class VariationalConfidenceCalibration(nn.Module):
         self.num_classes = num_classes
         self.base_net = base_net
         self.z_dim = args.vcc_z_dim
-        self.encoder = nn.Sequential(
-            nn.Linear(num_classes + base_net.channels, 128),
-            nn.ReLU(),
-            nn.Linear(128, 256),
-            nn.ReLU(),
-            nn.Linear(256, 2 * self.z_dim)
-        )
-        self.decoder = nn.Sequential(
-            nn.Linear(num_classes + base_net.channels + self.z_dim, 256),
-            nn.ReLU(),
-            nn.Linear(256, 128),
-            nn.ReLU(),
-            nn.Linear(128, self.num_classes)
-        )
+        self.dropout_keep_p = args.vcc_mcdropout_keep_p
+        encoder_dims = [num_classes + base_net.channels] + args.vcc_encoder_dims + [2 * self.z_dim]
+        decoder_dims = [num_classes + base_net.channels + self.z_dim] + args.vcc_decoder_dims + [self.num_classes]
+        encoder_list, decoder_list = [], []
+
+        for i in range(len(encoder_dims) - 1):
+            encoder_list.append(nn.Linear(encoder_dims[i], encoder_dims[i + 1]))
+            if i != len(encoder_dims) - 2:
+                encoder_list.append(nn.ReLU(inplace=True))
+        for i in range(len(decoder_dims) - 1):
+            decoder_list.append(nn.Linear(decoder_dims[i], decoder_dims[i + 1]))
+            if i != len(decoder_dims) - 2:
+                decoder_list.append(nn.ReLU(inplace=True))
+
+        self.encoder = nn.Sequential(*encoder_list)
+        self.decoder = nn.Sequential(*decoder_list)
 
     def reparameterise(self, mu, logvar):
         epsilon = torch.randn_like(mu)
@@ -37,7 +39,7 @@ class VariationalConfidenceCalibration(nn.Module):
         num_classes = self.num_classes
         feats = torch.cat([feats for _ in range(self.sampling_times)], 0)
         with torch.no_grad():
-            feats = torch.dropout(feats, p=0.5, train=True)
+            feats = torch.dropout(feats, p=1 - self.dropout_keep_p, train=True)
             pred = self.base_net.fc(feats).argmax(1)
 
         pred_onehot = F.one_hot(pred, num_classes)
@@ -82,11 +84,13 @@ def vcc_wrn_28_2(pretrained=False, pretrained_path=None, args=None, num_classes=
     assert not pretrained_path
     return model
 
+
 def vcc_wrn_28_8(pretrained=False, pretrained_path=None, args=None, num_classes=0, **kwargs):
     base_model = wrn_28_8(pretrained, pretrained_path, args=args, num_classes=num_classes, **kwargs)
     model = VariationalConfidenceCalibration(base_model, args, num_classes)
     assert not pretrained_path
     return model
+
 
 def vcc_wrn_var_37_2(pretrained=False, pretrained_path=None, args=None, num_classes=0, **kwargs):
     base_model = wrn_var_37_2(pretrained, pretrained_path, args=args, num_classes=num_classes, **kwargs)

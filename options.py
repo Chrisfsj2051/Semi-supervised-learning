@@ -12,6 +12,8 @@ def get_config():
     VCC Related
     '''
     parser.add_argument('--vcc_z_dim', type=int, default=0)
+    parser.add_argument('--vcc_encoder_dims', type=int, nargs='+', default=[128, 256])
+    parser.add_argument('--vcc_decoder_dims', type=int, nargs='+', default=[256, 128])
     parser.add_argument('--vcc_training_warmup', type=int, default=2 ** 30)
     parser.add_argument('--vcc_selection_warmup', type=int, default=2 ** 30)
     parser.add_argument('--vcc_lab_loss_weight', type=float, default=0.0)
@@ -20,6 +22,7 @@ def get_config():
     parser.add_argument('--vcc_only_supervised', type=bool, default=False)
     parser.add_argument('--vcc_uncertainty_method', type=str, default=None)
     parser.add_argument('--vcc_mcdropout_upd_ratio', type=float, default=1.0)
+    parser.add_argument('--vcc_mcdropout_keep_p', type=float, default=0.5)
 
     '''
     Data diet

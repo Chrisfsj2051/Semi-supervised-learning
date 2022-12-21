@@ -1,25 +1,23 @@
 algorithm: vcc
-save_dir: ./saved_models/debug
-save_name: vcc_cifar100_400_4gpu
+save_dir: ./saved_models/vcc_ssl_tiny/cifar100/vcc
+save_name: vcc_cifar100_400_4gpu_mckeepprob0.7
 resume: False
 load_path: None
 vcc_training_warmup: 50000
 vcc_selection_warmup: 100000
 vcc_lab_loss_weight: 0.0
 vcc_unlab_loss_weight: 5.0
+vcc_mcdropout_keep_p: 0.7
 vcc_z_dim: 1024
 vcc_p_cutoff: 0.75
-vcc_encoder_dims: [1024, 2048]
-vcc_decoder_dims: [1024, 512]
-vcc_mcdropout_keep_p: 0.7
-overwrite: True
+overwrite: False
 use_tensorboard: True
 epoch: 1000
 num_train_iter: 300000
 save_interval: 25000
 num_eval_iter: 1000
 num_labels: 400
-batch_size: 6
+batch_size: 64
 eval_batch_size: 256
 hard_label: True
 T: 0.5
