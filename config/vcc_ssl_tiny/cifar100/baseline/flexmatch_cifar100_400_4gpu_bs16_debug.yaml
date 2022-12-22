@@ -1,9 +1,10 @@
+# 58.42, 26 hours
 algorithm: flexmatch
-save_dir: ./saved_models/debug
+save_dir: ./saved_models/vcc_ssl_tiny/cifar100/baseline
 save_name: flexmatch_cifar100_400_4gpu_bs16_debug
-resume: True
-load_path: saved_models/vcc_ssl_tiny/cifar100/baseline/flexmatch_cifar100_400_4gpu_bs16_debug/model_0000050000.pth
-overwrite: True
+resume: False
+load_path: None
+overwrite: False
 use_tensorboard: True
 epoch: 1000
 num_train_iter: 300000
