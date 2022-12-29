@@ -1,13 +1,13 @@
 algorithm: vcc
 save_dir: ./saved_models/vcc_ssl_tiny/cifar100/vcc
-save_name: vcc_cifar100_400_4gpu_mckeepprob0.95
+save_name: vcc_cifar100_400_4gpu_mckeepprob0.99
 resume: True
 load_path: ./saved_models/vcc_ssl_tiny/cifar100/vcc/vcc_cifar100_400_4gpu_mckeepprob0.9/model_0000050000.pth
 vcc_training_warmup: 50000
 vcc_selection_warmup: 100000
 vcc_lab_loss_weight: 0.0
 vcc_unlab_loss_weight: 5.0
-vcc_mcdropout_keep_p: 0.95
+vcc_mcdropout_keep_p: 0.99999
 vcc_z_dim: 1024
 vcc_p_cutoff: 0.75
 overwrite: False

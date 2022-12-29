@@ -363,6 +363,18 @@ class AlgorithmBase:
         self.model.load_state_dict(checkpoint['model'])
         self.ema_model.load_state_dict(checkpoint['ema_model'])
         self.optimizer.load_state_dict(checkpoint['optimizer'])
+        """
+        ckpt_dict, ema_ckpt_dict = OrderedDict(), OrderedDict()
+        for k, v in checkpoint['model'].items():
+            new_k = k.replace('module.', 'module.base_net.')
+            ckpt_dict[new_k] = v
+        for k, v in checkpoint['ema_model'].items():
+            new_k = k.replace('module.', 'module.base_net.') 
+            ema_ckpt_dict[new_k] = v
+
+        self.model.load_state_dict(ckpt_dict, strict=False)
+        self.ema_model.load_state_dict(ema_ckpt_dict, strict=False)
+        """
         self.scheduler.load_state_dict(checkpoint['scheduler'])
         self.loss_scaler.load_state_dict(checkpoint['loss_scaler'])
         self.it = checkpoint['it']
