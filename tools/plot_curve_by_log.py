@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--log', type=str, required=True)
+    parser.add_argument('--logs', type=str, required=True, nargs='+')
     parser.add_argument('--metric', type=str, required=True)
     return parser.parse_args()
 
@@ -26,14 +26,13 @@ def analysis_log(log_path):
 
 def main():
     args = parse_args()
-    logs = analysis_log(args.log)
-    x = [item['iteration'] for item in logs]
-    y = [item[args.metric] for item in logs]
-    plt.plot(x, y)
+    for log in args.logs:
+        logs = analysis_log(log)
+        x = [item['iteration'] for item in logs]
+        y = [item[args.metric] for item in logs]
+        plt.plot(x, y, label=log)
+    plt.legend()
     plt.show()
-
-
-
 
 if __name__ == '__main__':
     main()

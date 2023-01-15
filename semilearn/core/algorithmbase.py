@@ -360,6 +360,7 @@ class AlgorithmBase:
         load model and specified parameters for resume
         """
         checkpoint = torch.load(load_path, map_location='cpu')
+        # """
         self.model.load_state_dict(checkpoint['model'])
         self.ema_model.load_state_dict(checkpoint['ema_model'])
         self.optimizer.load_state_dict(checkpoint['optimizer'])

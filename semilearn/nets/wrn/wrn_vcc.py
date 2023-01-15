@@ -20,6 +20,14 @@ class VariationalConfidenceCalibration(nn.Module):
         decoder_dims = [num_classes + base_net.channels + self.z_dim] + args.vcc_decoder_dims + [self.num_classes]
         encoder_list, decoder_list = [], []
 
+        self.dec_use_bn = args.vcc_dec_arch in ['bn', 'bn+ln']
+        self.dec_use_ln = args.vcc_dec_arch in ['ln', 'bn+ln']
+
+        if self.dec_use_ln:
+            self.dec_cls_ln = nn.LayerNorm(num_classes)
+            self.dec_chn_ln = nn.LayerNorm(base_net.channels)
+
+
         for i in range(len(encoder_dims) - 1):
             encoder_list.append(nn.Linear(encoder_dims[i], encoder_dims[i + 1]))
             if i != len(encoder_dims) - 2:
@@ -27,6 +35,8 @@ class VariationalConfidenceCalibration(nn.Module):
         for i in range(len(decoder_dims) - 1):
             decoder_list.append(nn.Linear(decoder_dims[i], decoder_dims[i + 1]))
             if i != len(decoder_dims) - 2:
+                if self.dec_use_bn:
+                    decoder_list.append(nn.BatchNorm2d(decoder_dims[i + 1]))
                 decoder_list.append(nn.ReLU(inplace=True))
 
         self.encoder = nn.Sequential(*encoder_list)
@@ -56,6 +66,9 @@ class VariationalConfidenceCalibration(nn.Module):
         backbone_output = self.base_net(x, only_fc, only_feat, **kwargs)
         logits, feats = backbone_output['logits'], backbone_output['feat']
         cali_gt_label = self.calc_uncertainty(x, feats)
+        if self.dec_use_ln:
+            logits = self.dec_cls_ln(logits)
+            feats = self.dec_chn_ln(feats)
         encoder_x = torch.cat([logits, feats], 1)
 
         if self.detach_input:
