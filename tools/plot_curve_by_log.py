@@ -28,10 +28,14 @@ def main():
     args = parse_args()
     for log in args.logs:
         logs = analysis_log(log)
+        if args.metric not in logs[0]:
+            continue
         x = [item['iteration'] for item in logs]
         y = [item[args.metric] for item in logs]
         plt.plot(x, y, label=log)
     plt.legend()
+    plt.xlabel('Iterations')
+    plt.ylabel(args.metric)
     plt.show()
 
 if __name__ == '__main__':

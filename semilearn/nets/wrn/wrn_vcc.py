@@ -9,7 +9,7 @@ class VariationalConfidenceCalibration(nn.Module):
 
     def __init__(self, base_net, args, num_classes):
         super(VariationalConfidenceCalibration, self).__init__()
-        self.sampling_times = 20
+        self.sampling_times = args.vcc_mcdropout_sampling_times
         self.num_classes = num_classes
         self.base_net = base_net
         self.z_dim = args.vcc_z_dim

@@ -24,9 +24,9 @@ def get_config():
     parser.add_argument('--vcc_uncertainty_method', type=str, default=None)
     parser.add_argument('--vcc_mcdropout_upd_ratio', type=float, default=1.0)
     parser.add_argument('--vcc_mcdropout_keep_p', type=float, default=0.5)
+    parser.add_argument('--vcc_mcdropout_sampling_times', type=int, default=20)
     parser.add_argument('--vcc_dec_arch', type=str, default='default',
                         choices=['default', 'bn', 'ln', 'bn+ln'])
-
     '''
     Data diet
     '''

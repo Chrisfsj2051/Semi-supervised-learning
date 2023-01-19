@@ -1,7 +1,6 @@
-# 54, gg
 algorithm: vcc
 save_dir: ./saved_models/vcc_ssl_tiny/cifar100/vcc
-save_name: vcc_cifar100_400_4gpu_dec_bn
+save_name: vcc_cifar100_400_4gpu_dec_bn_mckeepprob0.6
 vcc_dec_arch: bn
 resume: False
 load_path: None
