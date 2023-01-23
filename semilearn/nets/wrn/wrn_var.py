@@ -117,6 +117,9 @@ class WideResNetVar(nn.Module):
                 nn.init.xavier_normal_(m.weight.data)
                 m.bias.data.zero_()
 
+    def get_influence_function_params(self):
+        raise NotImplementedError
+
     def forward(self, x, only_fc=False, only_feat=False, **kwargs):
         """
         Args:

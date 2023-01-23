@@ -115,6 +115,11 @@ class WideResNet(nn.Module):
                 nn.init.xavier_normal_(m.weight.data)
                 m.bias.data.zero_()
 
+    def get_influence_function_params(self):
+        # weight of last conv layer
+        conv_params = list(self.block3.layer[-1].conv2.parameters())[0]
+        return (conv_params, )
+
     def forward(self, x, only_fc=False, only_feat=False, **kwargs):
         """
         Args:

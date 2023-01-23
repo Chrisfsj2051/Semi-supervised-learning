@@ -1,6 +1,6 @@
 algorithm: vcc
 save_dir: ./saved_models/vcc_ssl_tiny/cifar100/vcc
-save_name: vcc_cifar100_400_4gpu_dec_bn_sampling100
+save_name: vcc_cifar100_400_4gpu_dec_bn_sampling200
 vcc_dec_arch: bn
 resume: False
 load_path: None
@@ -12,7 +12,7 @@ vcc_unlab_loss_weight: 5.0
 vcc_mcdropout_keep_p: 0.7
 vcc_z_dim: 1024
 vcc_p_cutoff: 0.75
-overwrite: False
+overwrite: True
 use_tensorboard: True
 epoch: 1000
 num_train_iter: 300000

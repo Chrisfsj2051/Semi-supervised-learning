@@ -3,6 +3,7 @@ from semilearn.algorithms import name2alg
 from semilearn.algorithms.utils import str2bool
 from semilearn.core.utils import over_write_args_from_file
 import torch
+import os
 
 
 def get_config():
@@ -173,4 +174,13 @@ def get_config():
     gpu_count = torch.cuda.device_count()
     assert args.batch_size % gpu_count == 0
     args.batch_size = args.batch_size // gpu_count
+
+    # resume from checkpoint
+    save_path = os.path.join(args.save_dir, args.save_name)
+    load_path = os.path.join(save_path, 'latest_model.pth')
+    if 'debug' not in save_path and os.path.exists(load_path) and not args.resume:
+        args.resume = True
+        args.overwrite = False
+        args.load_path = load_path
+        print(f'Reset overwrite=False and loadpath={args.load_path}')
     return args

@@ -4,7 +4,7 @@ save_name: flexmatch_cifar10_250_keep2500_2gpu
 resume: False
 datadiet_interval: 15
 datadiet_keep_num: 2500
-datadiet_method: el2n
+datadiet_method: influence
 load_path: ./saved_models/data_diet/cifar10/el2n/flexmatch_cifar10_250_keep10000_2gpu/model_0000009000.pth
 overwrite: True
 save_interval: 1000

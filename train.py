@@ -35,7 +35,7 @@ def main(args):
     if os.path.exists(save_path) and args.overwrite and args.resume == False:
         import shutil
         shutil.rmtree(save_path)
-    if os.path.exists(save_path) and not args.overwrite:
+    if os.path.exists(save_path) and not args.overwrite and args.resume == False:
         raise Exception('already existing model: {}'.format(save_path))
     if args.resume:
         if args.load_path is None:
