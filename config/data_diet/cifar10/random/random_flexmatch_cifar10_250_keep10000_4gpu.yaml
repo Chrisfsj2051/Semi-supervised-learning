@@ -1,6 +1,6 @@
 algorithm: flexmatch
 save_dir: ./saved_models/data_diet/cifar10/random/
-save_name: flexmatch_cifar10_250_keep10000_2gpu
+save_name: flexmatch_cifar10_250_keep10000_4gpu
 resume: False
 datadiet_interval: 1000
 datadiet_keep_num: 10000
@@ -9,8 +9,8 @@ load_path: None
 overwrite: False
 use_tensorboard: True
 epoch: 1000
-save_interval: 1000
-num_train_iter: 200000
+save_interval: 3000
+num_train_iter: 300000
 num_eval_iter: 1000
 num_labels: 250
 batch_size: 64

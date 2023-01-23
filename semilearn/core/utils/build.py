@@ -156,6 +156,7 @@ def get_data_loader(args,
             num_replicas = 1
             rank = 0
 
+        # Note: related to data diet setting
         per_epoch_steps = num_iters // num_epochs
 
         num_samples = per_epoch_steps * batch_size * num_replicas
