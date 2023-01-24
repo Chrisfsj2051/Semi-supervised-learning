@@ -183,4 +183,7 @@ def get_config():
         args.overwrite = False
         args.load_path = load_path
         print(f'Reset overwrite=False and loadpath={args.load_path}')
+    elif os.path.exists(save_path) and not os.path.exists(load_path):
+        args.overwrite = True
+        print(f'Reset overwrite=True')
     return args
