@@ -10,6 +10,13 @@
           </mappings>
         </serverdata>
       </paths>
+      <paths name="pku-3090">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/fengqianhan/fsjworkspace/Semi-supervised-learning" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
       <paths name="ubuntu">
         <serverdata>
           <mappings>

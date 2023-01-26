@@ -5,6 +5,7 @@ import torch
 
 from semilearn.algorithms.flexmatch import FlexMatch
 import torch.nn.functional as F
+import torch.distributed as dist
 import numpy as np
 from semilearn.algorithms.utils import ce_loss, consistency_loss, SSL_Argument, str2bool
 
@@ -33,11 +34,23 @@ class VCC(FlexMatch):
         }
 
     def update_uncertainty_map(self, idx_ulb, recon_gt_ulb_w):
+        if dist.get_world_size() > 1:
+            dist_idx_ulb = idx_ulb.new_zeros(self.uncertainty_selected.shape[0])
+            dist_upd_val = recon_gt_ulb_w.new_zeros(self.uncertainty_selected.shape[0], recon_gt_ulb_w.shape[1])
+            dist_idx_ulb[idx_ulb], dist_upd_val[idx_ulb] = 1, recon_gt_ulb_w
+            dist.all_reduce(dist_idx_ulb, op=dist.ReduceOp.SUM)
+            dist.all_reduce(dist_upd_val, op=dist.ReduceOp.SUM)
+            dist.barrier()
+            dist_upd_val = dist_upd_val / (dist_idx_ulb[..., None] + 1e-7)
+            recon_gt_ulb_w = dist_upd_val[idx_ulb]
+            dist.barrier()
+
+        self.uncertainty_ema_map = self.uncertainty_ema_map.to(self.gpu)
         update_weight = torch.ones_like(recon_gt_ulb_w)
         update_weight[self.uncertainty_selected[idx_ulb] == 1] = self.uncertainty_ema_step
         self.uncertainty_selected[idx_ulb] = 1
         updated_value = update_weight * recon_gt_ulb_w + (1 - update_weight) * self.uncertainty_ema_map[idx_ulb].cuda()
-        self.uncertainty_ema_map[idx_ulb] = updated_value.cpu()
+        self.uncertainty_ema_map[idx_ulb] = updated_value
         return updated_value
 
     def train_step(self, x_lb, y_lb, idx_ulb, x_ulb_w, x_ulb_s):
@@ -110,6 +123,19 @@ class VCC(FlexMatch):
         tb_dict['train/total_loss'] = total_loss.item()
         tb_dict['train/mask_ratio'] = mask.float().mean().item()
         return tb_dict
+
+    def get_save_dict(self):
+        save_dict = super().get_save_dict()
+        save_dict['uncertainty_selected'] = self.uncertainty_selected.cpu()
+        save_dict['uncertainty_ema_map'] = self.uncertainty_ema_map.cpu()
+        return save_dict
+
+    def load_model(self, load_path):
+        checkpoint = super().load_model(load_path)
+        self.uncertainty_selected = checkpoint['uncertainty_selected'].cuda(self.gpu)
+        self.uncertainty_ema_map = checkpoint['uncertainty_ema_map'].cuda(self.gpu)
+        self.print_fn("additional VCC parameter loaded")
+        return checkpoint
 
     def predict(self, eval_dest):
         self.model.eval()
