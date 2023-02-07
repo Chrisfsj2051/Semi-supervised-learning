@@ -7,7 +7,7 @@ from semilearn.algorithms.flexmatch import FlexMatch
 import torch.nn.functional as F
 import torch.distributed as dist
 import numpy as np
-from semilearn.algorithms.utils import ce_loss, consistency_loss, SSL_Argument, str2bool
+from semilearn.algorithms.utils import ce_loss, consistency_loss
 
 
 class VCC(FlexMatch):

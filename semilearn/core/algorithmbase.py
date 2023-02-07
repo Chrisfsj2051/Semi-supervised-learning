@@ -157,9 +157,13 @@ class AlgorithmBase:
 
     def set_optimizer(self):
         self.print_fn("Create optimizer and scheduler")
+        train_iter = self.num_train_iter
+        if self.args.datadiet_method and self.args.datadiet_adjust_lr_decay:
+            self.print_fn("Adjust cosine learning rate according to data diet ratio")
+            train_iter = self.args.datadiet_keep_num / len(self.dataset_dict['train_ulb']) * train_iter
         optimizer = get_optimizer(self.model, self.args.optim, self.args.lr, self.args.momentum, self.args.weight_decay, self.args.layer_decay)
         scheduler = get_cosine_schedule_with_warmup(optimizer,
-                                                    self.num_train_iter,
+                                                    train_iter,
                                                     num_warmup_steps=self.args.num_warmup_iter)
         return optimizer, scheduler
 
@@ -360,7 +364,6 @@ class AlgorithmBase:
         load model and specified parameters for resume
         """
         checkpoint = torch.load(load_path, map_location='cpu')
-        # """
         self.model.load_state_dict(checkpoint['model'])
         self.ema_model.load_state_dict(checkpoint['ema_model'])
         self.optimizer.load_state_dict(checkpoint['optimizer'])

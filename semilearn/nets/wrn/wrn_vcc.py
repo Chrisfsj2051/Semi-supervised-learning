@@ -1,5 +1,6 @@
 from semilearn.nets.wrn.wrn import wrn_28_2, wrn_28_8
 from semilearn.nets.wrn.wrn_var import wrn_var_37_2
+from semilearn.nets.wrn.vcc_enc_dec import VCCEarlyFusionEncoder, VCCEarlyFusionDecoder, VCCLateFusionDecoder
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
@@ -15,32 +16,11 @@ class VariationalConfidenceCalibration(nn.Module):
         self.z_dim = args.vcc_z_dim
         self.dropout_keep_p = args.vcc_mcdropout_keep_p
         self.detach_input = args.vcc_detach_input
-
-        encoder_dims = [num_classes + base_net.channels] + args.vcc_encoder_dims + [2 * self.z_dim]
-        decoder_dims = [num_classes + base_net.channels + self.z_dim] + args.vcc_decoder_dims + [self.num_classes]
-        encoder_list, decoder_list = [], []
-
-        self.dec_use_bn = args.vcc_dec_arch in ['bn', 'bn+ln']
-        self.dec_use_ln = args.vcc_dec_arch in ['ln', 'bn+ln']
-
-        if self.dec_use_ln:
-            self.dec_cls_ln = nn.LayerNorm(num_classes)
-            self.dec_chn_ln = nn.LayerNorm(base_net.channels)
-
-
-        for i in range(len(encoder_dims) - 1):
-            encoder_list.append(nn.Linear(encoder_dims[i], encoder_dims[i + 1]))
-            if i != len(encoder_dims) - 2:
-                encoder_list.append(nn.ReLU(inplace=True))
-        for i in range(len(decoder_dims) - 1):
-            decoder_list.append(nn.Linear(decoder_dims[i], decoder_dims[i + 1]))
-            if i != len(decoder_dims) - 2:
-                if self.dec_use_bn:
-                    decoder_list.append(nn.BatchNorm2d(decoder_dims[i + 1]))
-                decoder_list.append(nn.ReLU(inplace=True))
-
-        self.encoder = nn.Sequential(*encoder_list)
-        self.decoder = nn.Sequential(*decoder_list)
+        self.encoder = VCCEarlyFusionEncoder(args, base_net)
+        decoder_type = VCCEarlyFusionDecoder
+        if args.vcc_dec_model == 'late_fusion':
+            decoder_type = VCCLateFusionDecoder
+        self.decoder = decoder_type(args, base_net)
 
     def reparameterise(self, mu, logvar):
         epsilon = torch.randn_like(mu)
@@ -66,25 +46,16 @@ class VariationalConfidenceCalibration(nn.Module):
         backbone_output = self.base_net(x, only_fc, only_feat, **kwargs)
         logits, feats = backbone_output['logits'], backbone_output['feat']
         cali_gt_label = self.calc_uncertainty(x, feats)
-        if self.dec_use_ln:
-            logits = self.dec_cls_ln(logits)
-            feats = self.dec_chn_ln(feats)
-        encoder_x = torch.cat([logits, feats], 1)
-
-        if self.detach_input:
-            encoder_x = encoder_x.detach()
-
-        h = self.encoder(encoder_x)
+        h = self.encoder(logits, feats)
         mu, logvar = h.chunk(2, dim=1)
         z = self.reparameterise(mu, logvar)
-        recon_r = self.decoder(torch.cat([encoder_x, z], 1))
+        recon_r = self.decoder(logits, feats, z) # train vcc
 
         with torch.no_grad():
             h = torch.randn(x.shape[0], self.z_dim * 2).to(x.device)
             sample_mu, sample_logvar = h.chunk(2, dim=1)
             z = self.reparameterise(sample_mu, sample_logvar)
-            decode_input = torch.cat([encoder_x, z], 1)
-            cali_output = self.decoder(decode_input)
+            cali_output = self.decoder(logits, feats, z) # pseudo label selection
 
         return {
             'logits': logits,

@@ -26,14 +26,20 @@ def get_config():
     parser.add_argument('--vcc_mcdropout_upd_ratio', type=float, default=1.0)
     parser.add_argument('--vcc_mcdropout_keep_p', type=float, default=0.5)
     parser.add_argument('--vcc_mcdropout_sampling_times', type=int, default=20)
-    parser.add_argument('--vcc_dec_arch', type=str, default='default',
-                        choices=['default', 'bn', 'ln', 'bn+ln'])
+    # VCC EncoderDecoder
+    parser.add_argument('--vcc_dec_model', type=str, default='early_fusion',
+                        choices=['early_fusion', 'late_fusion'])
+    parser.add_argument('--vcc_enc_norm', type=str, default='none',
+                        choices=['none', 'ln', 'bn', 'bn+ln'])
+    parser.add_argument('--vcc_dec_norm', type=str, default='none',
+                        choices=['none', 'bn', 'ln', 'bn+ln'])
     '''
     Data diet
     '''
     parser.add_argument('--datadiet_interval', type=int, default=2 ** 30)
     parser.add_argument('--datadiet_keep_num', type=int, default=2 ** 30)
     parser.add_argument('--datadiet_method', type=str, default=None)
+    parser.add_argument('--datadiet_adjust_lr_decay', type=bool, default=False)
 
     '''
     Additional Dataset Args
