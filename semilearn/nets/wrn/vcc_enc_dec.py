@@ -6,7 +6,7 @@ class VCCBaseEncoderDecoder(nn.Module):
     def __init__(self, args, base_net):
         super(VCCBaseEncoderDecoder, self).__init__()
         self.args = args
-        self.sampling_times = args.vcc_mcdropout_sampling_times
+        self.sampling_times = args.vcc_mc_sampling_times
         self.num_classes = args.num_classes
         self.z_dim = args.vcc_z_dim
         self.base_net_channels = base_net.channels

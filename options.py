@@ -22,10 +22,14 @@ def get_config():
     parser.add_argument('--vcc_unlab_loss_weight', type=float, default=0.0)
     parser.add_argument('--vcc_p_cutoff', type=float, default=0.95)
     parser.add_argument('--vcc_only_supervised', type=bool, default=False)
-    parser.add_argument('--vcc_uncertainty_method', type=str, default=None)
-    parser.add_argument('--vcc_mcdropout_upd_ratio', type=float, default=1.0)
-    parser.add_argument('--vcc_mcdropout_keep_p', type=float, default=0.5)
-    parser.add_argument('--vcc_mcdropout_sampling_times', type=int, default=20)
+    parser.add_argument('--vcc_disable_variance', type=bool, default=False)
+    # Uncertainty
+    parser.add_argument('--vcc_uncertainty_method', type=str, default='mcdropout',
+                        choices=['mcdropout', 'mcdropblock'])
+    # Monte-Calor
+    parser.add_argument('--vcc_mc_upd_ratio', type=float, default=1.0)
+    parser.add_argument('--vcc_mc_keep_p', type=float, default=0.5)
+    parser.add_argument('--vcc_mc_sampling_times', type=int, default=20)
     # VCC EncoderDecoder
     parser.add_argument('--vcc_dec_model', type=str, default='early_fusion',
                         choices=['early_fusion', 'late_fusion'])

@@ -9,7 +9,7 @@ vcc_training_warmup: 50000
 vcc_selection_warmup: 100000
 vcc_lab_loss_weight: 0.0
 vcc_unlab_loss_weight: 5.0
-vcc_mcdropout_keep_p: 0.7
+vcc_mc_keep_p: 0.7
 vcc_z_dim: 1024
 vcc_p_cutoff: 0.75
 overwrite: False

@@ -22,7 +22,7 @@ class VCC(FlexMatch):
         num_ulb = len(self.dataset_dict['train_ulb'])
         self.uncertainty_selected = torch.zeros(num_ulb)
         self.uncertainty_ema_map = torch.zeros(num_ulb, args.num_classes)
-        self.uncertainty_ema_step = args.vcc_mcdropout_upd_ratio
+        self.uncertainty_ema_step = args.vcc_mc_upd_ratio
 
     def compute_vcc_loss(self, recon_pred, recon_gt, logvar, mu, mask):
         recon_r_log_softmax = torch.log_softmax(recon_pred, -1)
@@ -81,16 +81,22 @@ class VCC(FlexMatch):
             vcc_logits = logits_x_ulb_w
             vcc_unlab_loss_weight = 0.0
             vcc_lab_loss_weight = 0.0
+            softmax_x_ulb = True
 
             if self.it > self.vcc_training_warmup:
                 vcc_unlab_loss_weight = self.vcc_unlab_loss_weight
                 vcc_lab_loss_weight = self.vcc_lab_loss_weight
                 self.p_cutoff = self.args.p_cutoff
             if self.it > self.vcc_selection_warmup:
-                vcc_logits = calibrated_logits_ulb_w
+                if self.args.vcc_disable_variance:
+                    vcc_logits = recon_gt_ulb_w
+                    softmax_x_ulb = False
+                else:
+                    vcc_logits = calibrated_logits_ulb_w
                 self.p_cutoff = self.args.vcc_p_cutoff
 
-            mask = self.call_hook("masking", "MaskingHook", logits_x_ulb=vcc_logits, idx_ulb=idx_ulb)
+            mask = self.call_hook("masking", "MaskingHook", logits_x_ulb=vcc_logits, idx_ulb=idx_ulb,
+                                  softmax_x_ulb=softmax_x_ulb)
 
             pseudo_label = self.call_hook("gen_ulb_targets", "PseudoLabelingHook",
                                           logits=vcc_logits,

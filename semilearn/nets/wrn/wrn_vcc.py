@@ -10,11 +10,11 @@ class VariationalConfidenceCalibration(nn.Module):
 
     def __init__(self, base_net, args, num_classes):
         super(VariationalConfidenceCalibration, self).__init__()
-        self.sampling_times = args.vcc_mcdropout_sampling_times
+        self.sampling_times = args.vcc_mc_sampling_times
         self.num_classes = num_classes
         self.base_net = base_net
         self.z_dim = args.vcc_z_dim
-        self.dropout_keep_p = args.vcc_mcdropout_keep_p
+        self.dropout_keep_p = args.vcc_mc_keep_p
         self.detach_input = args.vcc_detach_input
         self.encoder = VCCEarlyFusionEncoder(args, base_net)
         decoder_type = VCCEarlyFusionDecoder
