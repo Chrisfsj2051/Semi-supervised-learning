@@ -1,6 +1,7 @@
 from semilearn.nets.wrn.wrn import wrn_28_2, wrn_28_8
 from semilearn.nets.wrn.wrn_var import wrn_var_37_2
 from semilearn.nets.wrn.vcc_enc_dec import VCCEarlyFusionEncoder, VCCEarlyFusionDecoder, VCCLateFusionDecoder
+from semilearn.nets.plugins.dropblock import DropBlock2D
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
@@ -10,6 +11,7 @@ class VariationalConfidenceCalibration(nn.Module):
 
     def __init__(self, base_net, args, num_classes):
         super(VariationalConfidenceCalibration, self).__init__()
+        self.args = args
         self.sampling_times = args.vcc_mc_sampling_times
         self.num_classes = num_classes
         self.base_net = base_net
@@ -29,10 +31,18 @@ class VariationalConfidenceCalibration(nn.Module):
     def calc_uncertainty(self, img, feats):
         batch_size = feats.shape[0]
         num_classes = self.num_classes
-        feats = torch.cat([feats for _ in range(self.sampling_times)], 0)
-        with torch.no_grad():
-            feats = torch.dropout(feats, p=1 - self.dropout_keep_p, train=True)
-            pred = self.base_net.fc(feats).argmax(1)
+        if self.args.vcc_uncertainty_method == 'mcdropout':
+            feats = torch.cat([feats for _ in range(self.sampling_times)], 0)
+            with torch.no_grad():
+                feats = torch.dropout(feats, p=1 - self.dropout_keep_p, train=True)
+                pred = self.base_net.fc(feats).argmax(1)
+        elif self.args.vcc_uncertainty_method == 'mccutout':
+            dropblock = DropBlock2D(1 - self.args.vcc_mc_keep_p, self.args.vcc_mc_dropsize)
+            img = dropblock(torch.cat([img for _ in range(self.sampling_times)], 0))
+            with torch.no_grad():
+                pred = self.base_net(img)['logits'].argmax(1)
+        else:
+            raise NotImplementedError(f'Not support uncertainty method {self.args.vcc_uncertainty_method}')
 
         pred_onehot = F.one_hot(pred, num_classes)
         pred_onehot = pred_onehot.reshape(self.sampling_times, batch_size, num_classes)

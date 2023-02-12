@@ -25,10 +25,11 @@ def get_config():
     parser.add_argument('--vcc_disable_variance', type=bool, default=False)
     # Uncertainty
     parser.add_argument('--vcc_uncertainty_method', type=str, default='mcdropout',
-                        choices=['mcdropout', 'mcdropblock'])
+                        choices=['mcdropout', 'mccutout'])
     # Monte-Calor
     parser.add_argument('--vcc_mc_upd_ratio', type=float, default=1.0)
     parser.add_argument('--vcc_mc_keep_p', type=float, default=0.5)
+    parser.add_argument('--vcc_mc_dropsize', type=int, default=5) # for cifar dataset
     parser.add_argument('--vcc_mc_sampling_times', type=int, default=20)
     # VCC EncoderDecoder
     parser.add_argument('--vcc_dec_model', type=str, default='early_fusion',

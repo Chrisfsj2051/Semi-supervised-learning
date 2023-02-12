@@ -165,13 +165,16 @@ class VCC(FlexMatch):
 
                 output = self.model(x)
                 logits = output['logits']
-                calibrated_logits = output['calibrated_logits']
+
 
                 loss = F.cross_entropy(logits, y, reduction='mean')
                 y_true.extend(y.cpu().tolist())
                 y_pred.extend(torch.max(logits, dim=-1)[1].cpu().tolist())
                 y_logits.append(logits.cpu().numpy())
-                y_probs.append(torch.softmax(calibrated_logits, dim=-1).cpu().numpy())
+                if self.args.vcc_disable_variance:
+                    y_probs.append(output['recon_gt'].cpu().numpy())
+                else:
+                    y_probs.append(torch.softmax(output['calibrated_logits'], dim=-1).cpu().numpy())
                 total_loss += loss.item() * num_batch
 
         self.ema.restore()
