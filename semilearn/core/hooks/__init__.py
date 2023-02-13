@@ -10,4 +10,5 @@ from .priority import Priority, get_priority
 from .sampler_seed import DistSamplerSeedHook
 from .timer import TimerHook
 from .ema import EMAHook
-from .datadiet import DataDietHook
+# from .datadiet import DataDietHook
+from semilearn.data_diet import *

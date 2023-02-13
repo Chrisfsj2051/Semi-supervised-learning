@@ -12,7 +12,8 @@ import torch
 import torch.nn.functional as F
 from torch.cuda.amp import autocast, GradScaler
 
-from semilearn.core.hooks import Hook, get_priority, CheckpointHook, TimerHook, LoggingHook, DistSamplerSeedHook, ParamUpdateHook, EvaluationHook, EMAHook, DataDietHook
+from semilearn.core.hooks import Hook, get_priority, CheckpointHook, TimerHook, LoggingHook, DistSamplerSeedHook, ParamUpdateHook, EvaluationHook, EMAHook
+from semilearn.core.hooks import DataDietRandomHook, DataDietInfluenceHook, DataDietEL2NHook
 from semilearn.core.utils import get_dataset, get_data_loader, get_optimizer, get_cosine_schedule_with_warmup, Bn_Controller
 from semilearn.core.utils import maximum_calibration_error, expected_calibration_error, average_calibration_error, adaptive_expected_calibration_error, classwise_expected_calibration_error
 
@@ -194,8 +195,12 @@ class AlgorithmBase:
         # for hooks to be called in train_step, name it for simpler calling
         self.register_hook(ParamUpdateHook(), "ParamUpdateHook")
 
-        if self.args.datadiet_method is not None:
-            self.register_hook(DataDietHook(), "DataDietHook")
+        if self.args.datadiet_method == 'random':
+            self.register_hook(DataDietRandomHook(), "DataDietHook")
+        elif self.args.datadiet_method == 'el2n':
+            self.register_hook(DataDietEL2NHook(), "DataDietHook")
+        elif self.args.datadiet_method == 'influence':
+            self.register_hook(DataDietInfluenceHook(), "DataDietHook")
 
     def process_batch(self, **kwargs):
         """

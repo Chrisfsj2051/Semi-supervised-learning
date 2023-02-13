@@ -93,7 +93,9 @@ class FlexMatch(AlgorithmBase):
                                           'ce',
                                           mask=mask)
 
-            total_loss = sup_loss + self.lambda_u * unsup_loss
+            unsup_datadiet_weight = self.call_hook("get_batch_weight", "DataDietHook", idx_ulb=idx_ulb)
+
+            total_loss = sup_loss + self.lambda_u * unsup_loss * unsup_datadiet_weight
 
         # parameter updates
         self.call_hook("param_update", "ParamUpdateHook", loss=total_loss)
