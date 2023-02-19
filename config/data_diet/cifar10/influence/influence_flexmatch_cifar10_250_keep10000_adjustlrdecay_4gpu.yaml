@@ -3,7 +3,7 @@ save_dir: ./saved_models/data_diet/cifar10/influence/
 save_name: flexmatch_cifar10_250_keep10000_adjustlrdecay_4gpu
 datadiet_adjust_lr_decay: True
 resume: False
-datadiet_interval: 1000
+datadiet_interval: 5
 datadiet_keep_num: 10000
 datadiet_method: influence
 load_path: None

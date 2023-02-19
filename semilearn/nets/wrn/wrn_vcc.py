@@ -31,24 +31,32 @@ class VariationalConfidenceCalibration(nn.Module):
     def calc_uncertainty(self, img, feats):
         batch_size = feats.shape[0]
         num_classes = self.num_classes
-        if self.args.vcc_uncertainty_method == 'mcdropout':
+        uncertainty_method = self.args.vcc_uncertainty_method
+        if uncertainty_method in ['mcdropout', 'mcdropout_mean']:
             feats = torch.cat([feats for _ in range(self.sampling_times)], 0)
             with torch.no_grad():
                 feats = torch.dropout(feats, p=1 - self.dropout_keep_p, train=True)
-                pred = self.base_net.fc(feats).argmax(1)
-        elif self.args.vcc_uncertainty_method == 'mccutout':
+                pred = self.base_net.fc(feats)
+        elif uncertainty_method == 'mccutout':
             dropblock = DropBlock2D(1 - self.args.vcc_mc_keep_p, self.args.vcc_mc_dropsize)
             img = dropblock(torch.cat([img for _ in range(self.sampling_times)], 0))
             with torch.no_grad():
-                pred = self.base_net(img)['logits'].argmax(1)
+                pred = self.base_net(img)['logits']
         else:
             raise NotImplementedError(f'Not support uncertainty method {self.args.vcc_uncertainty_method}')
 
-        pred_onehot = F.one_hot(pred, num_classes)
-        pred_onehot = pred_onehot.reshape(self.sampling_times, batch_size, num_classes)
-        pred_onehot = pred_onehot.permute(1, 0, 2)
-        pred_onehot = pred_onehot.sum(1).float() / self.sampling_times
-        return pred_onehot
+        if uncertainty_method in ['mcdropout', 'mccutout']:
+            pred = pred.argmax(1)
+            result = F.one_hot(pred, num_classes)
+            result = result.reshape(self.sampling_times, batch_size, num_classes)
+            result = result.permute(1, 0, 2)
+            result = result.sum(1).float() / self.sampling_times
+        else:
+            result = pred.reshape(self.sampling_times, batch_size, num_classes)
+            result = result.softmax(2)
+            result = result.mean(0)
+
+        return result
 
     def forward(self, x, only_fc=False, only_feat=False, **kwargs):
         assert not only_fc

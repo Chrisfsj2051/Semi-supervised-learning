@@ -2,7 +2,7 @@ algorithm: flexmatch
 save_dir: ./saved_models/data_diet/cifar10/random/
 save_name: flexmatch_cifar10_250_keep10000_4gpu
 resume: False
-datadiet_interval: 1000
+datadiet_interval: 5
 datadiet_keep_num: 10000
 datadiet_method: random
 load_path: None

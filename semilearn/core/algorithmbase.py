@@ -13,7 +13,7 @@ import torch.nn.functional as F
 from torch.cuda.amp import autocast, GradScaler
 
 from semilearn.core.hooks import Hook, get_priority, CheckpointHook, TimerHook, LoggingHook, DistSamplerSeedHook, ParamUpdateHook, EvaluationHook, EMAHook
-from semilearn.core.hooks import DataDietRandomHook, DataDietInfluenceHook, DataDietEL2NHook
+from semilearn.core.hooks import DataDietRandomHook, DataDietInfluenceHook, DataDietEL2NHook, DataDietGradMatchHook
 from semilearn.core.utils import get_dataset, get_data_loader, get_optimizer, get_cosine_schedule_with_warmup, Bn_Controller
 from semilearn.core.utils import maximum_calibration_error, expected_calibration_error, average_calibration_error, adaptive_expected_calibration_error, classwise_expected_calibration_error
 
@@ -72,6 +72,7 @@ class AlgorithmBase:
 
         # common model related parameters
         self.it = 0
+        self.epoch = 0
         self.best_eval_acc, self.best_it = 0.0, 0
         self.bn_controller = Bn_Controller()
         self.net_builder = net_builder
@@ -201,6 +202,8 @@ class AlgorithmBase:
             self.register_hook(DataDietEL2NHook(), "DataDietHook")
         elif self.args.datadiet_method == 'influence':
             self.register_hook(DataDietInfluenceHook(), "DataDietHook")
+        elif self.args.datadiet_method == 'gradmatch':
+            self.register_hook(DataDietGradMatchHook(), "DataDietHook")
 
     def process_batch(self, **kwargs):
         """
@@ -245,7 +248,7 @@ class AlgorithmBase:
         # set self.ema here
         self.call_hook("before_run")
 
-        for epoch in range(self.epochs):
+        for epoch in range(self.epoch, self.epochs):
             self.epoch = epoch
             
             # prevent the training iterations exceed args.num_train_iter
@@ -348,6 +351,7 @@ class AlgorithmBase:
             'scheduler': self.scheduler.state_dict(),
             'loss_scaler': self.loss_scaler.state_dict(),
             'it': self.it + 1,
+            'epoch': self.epoch,
             'best_it': self.best_it,
             'best_eval_acc': self.best_eval_acc,
         }
@@ -387,6 +391,7 @@ class AlgorithmBase:
         self.scheduler.load_state_dict(checkpoint['scheduler'])
         self.loss_scaler.load_state_dict(checkpoint['loss_scaler'])
         self.it = checkpoint['it']
+        self.epoch = checkpoint['epoch']
         self.best_it = checkpoint['best_it']
         self.best_eval_acc = checkpoint['best_eval_acc']
         self.print_fn('model loaded')

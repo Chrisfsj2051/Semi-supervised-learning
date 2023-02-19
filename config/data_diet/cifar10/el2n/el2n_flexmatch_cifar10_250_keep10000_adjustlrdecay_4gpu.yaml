@@ -1,11 +1,11 @@
 algorithm: flexmatch
-save_dir: ./saved_models/data_diet/cifar10/influence/
-save_name: flexmatch_cifar10_250_keep30000_adjustlrdecay_4gpu
+save_dir: ./saved_models/data_diet/cifar10/el2n/
+save_name: flexmatch_cifar10_250_keep10000_adjustlrdecay_4gpu
 datadiet_adjust_lr_decay: True
 resume: False
-datadiet_interval: 1000
-datadiet_keep_num: 30000
-datadiet_method: influence
+datadiet_interval: 5
+datadiet_keep_num: 10000
+datadiet_method: el2n
 load_path: None
 overwrite: False
 save_interval: 20000
@@ -44,7 +44,7 @@ seed: 0
 world_size: 1
 rank: 0
 multiprocessing_distributed: True
-dist_url: tcp://127.0.0.1:10005
+dist_url: tcp://127.0.0.1:10002
 dist_backend: nccl
 gpu: None
 num_log_iter: 100

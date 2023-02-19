@@ -29,8 +29,8 @@ class DataDietBaseHook(Hook):
         algorithm.loader_dict['train_ulb'].sampler.set_pruned_indices(None)
         self.idx2score = {}
 
-    def before_train_step(self, algorithm):
-        if algorithm.it > 1 and self.every_n_iters(algorithm, algorithm.args.datadiet_interval):
+    def before_train_epoch(self, algorithm):
+        if algorithm.epoch > 1 and self.every_n_epochs(algorithm, algorithm.args.datadiet_interval):
             algorithm.print_fn(f"Start pruning: method={str(self.__class__)[:-2].split('.')[-1]}, "
                                f"epoch={algorithm.epoch}, it={algorithm.it}")
             self.reset_status(algorithm)

@@ -1,13 +1,15 @@
-# 55.49
 algorithm: vcc
 save_dir: ./saved_models/vcc_ssl_tiny/cifar100/vcc
-save_name: vcc_cifar100_2500_4gpu
+save_name: vcc_cifar100_400_4gpu_bn
+vcc_dec_norm: bn
+vcc_enc_norm: bn
 resume: False
 load_path: None
 vcc_training_warmup: 50000
 vcc_selection_warmup: 100000
 vcc_lab_loss_weight: 0.0
 vcc_unlab_loss_weight: 5.0
+vcc_mc_keep_p: 0.7
 vcc_z_dim: 1024
 vcc_p_cutoff: 0.75
 overwrite: False
@@ -16,7 +18,7 @@ epoch: 1000
 num_train_iter: 300000
 save_interval: 25000
 num_eval_iter: 1000
-num_labels: 2500
+num_labels: 400
 batch_size: 64
 eval_batch_size: 256
 hard_label: True

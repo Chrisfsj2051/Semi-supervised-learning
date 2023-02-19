@@ -25,7 +25,7 @@ def get_config():
     parser.add_argument('--vcc_disable_variance', type=bool, default=False)
     # Uncertainty
     parser.add_argument('--vcc_uncertainty_method', type=str, default='mcdropout',
-                        choices=['mcdropout', 'mccutout'])
+                        choices=['mcdropout', 'mccutout', 'mcdropout_mean'])
     # Monte-Calor
     parser.add_argument('--vcc_mc_upd_ratio', type=float, default=1.0)
     parser.add_argument('--vcc_mc_keep_p', type=float, default=0.5)

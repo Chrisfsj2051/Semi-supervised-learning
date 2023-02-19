@@ -10,26 +10,12 @@ class DataDietInfluenceHook(DataDietBaseHook):
         self.idx2score = {}
         self.batchid2weight = {}
 
-    def predict(self, algorithm):
-        from semilearn.algorithms.utils.loss import ce_loss
-        # 0. set init status
-        model_params = algorithm.model.module.get_influence_function_params()
-        device = algorithm.model.device
-        lb_dset = algorithm.dataset_dict['train_lb']
-        ulb_dset = algorithm.loader_dict['train_ulb']
-        threshold = algorithm.call_hook("get_threshold", "MaskingHook")
-        training = algorithm.model.training
-        algorithm.model.eval()
-        # 1. grad_val
-        # TODO: EMA MC DROPOUT
-        batch_size = algorithm.args.batch_size
-        ulb_ratio = algorithm.args.uratio
-        val_size = ulb_ratio * batch_size
-        sampled_indices = np.random.choice(len(lb_dset), val_size * 2)
+    def mixup_sampling(self, algorithm, dset, sample_size):
+        sampled_indices = np.random.choice(len(dset), sample_size * 2)
         sampled_indices = torch.from_numpy(sampled_indices)
-        mixup_ratio = np.random.beta(1, 1, size=val_size)[:, None, None, None]
-        mixup_ratio = torch.from_numpy(mixup_ratio).to(device).float()
-        sampled_data = [lb_dset[i] for i in sampled_indices]
+        mixup_ratio = np.random.beta(1, 1, size=sample_size)[:, None, None, None]
+        mixup_ratio = torch.from_numpy(mixup_ratio).to(algorithm.model.device).float()
+        sampled_data = [dset[i] for i in sampled_indices]
         sampled_x = mixup_ratio.new_tensor(np.concatenate([item['x_lb'][None] for item in sampled_data], 0))
         mixup_x = sampled_x[::2] * mixup_ratio + sampled_x[1::2] * (1 - mixup_ratio)
         sampled_y = mixup_ratio.new_tensor([item['y_lb'] for item in sampled_data]).long()
@@ -37,6 +23,21 @@ class DataDietInfluenceHook(DataDietBaseHook):
         mixup_ratio = mixup_ratio.squeeze()[:, None]
         mixup_y.scatter_(1, sampled_y[::2, None], mixup_ratio)
         mixup_y.scatter_(1, sampled_y[1::2, None], 1 - mixup_ratio)
+        return mixup_x, mixup_y
+
+    def predict(self, algorithm):
+        from semilearn.algorithms.utils.loss import ce_loss
+        # 0. set init status
+        model_params = algorithm.model.module.get_influence_function_params()
+        lb_dset = algorithm.dataset_dict['train_lb']
+        ulb_dset = algorithm.loader_dict['train_ulb']
+        threshold = algorithm.call_hook("get_threshold", "MaskingHook")
+        training = algorithm.model.training
+        algorithm.model.eval()
+        # 1. grad_val
+        # TODO: EMA MC DROPOUT
+        val_size = algorithm.args.batch_size * algorithm.args.uratio
+        mixup_x, mixup_y = self.mixup_sampling(algorithm, lb_dset, val_size)
         val_logits = algorithm.model(mixup_x)['logits']
         val_loss = ce_loss(val_logits, mixup_y, reduction='mean')
         val_grads = torch.autograd.grad(val_loss, model_params)
