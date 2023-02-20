@@ -1,4 +1,6 @@
 import argparse
+import shutil
+
 from semilearn.algorithms import name2alg
 from semilearn.algorithms.utils import str2bool
 from semilearn.core.utils import over_write_args_from_file
@@ -25,7 +27,7 @@ def get_config():
     parser.add_argument('--vcc_disable_variance', type=bool, default=False)
     # Uncertainty
     parser.add_argument('--vcc_uncertainty_method', type=str, default='mcdropout',
-                        choices=['mcdropout', 'mccutout', 'mcdropout_mean'])
+                        choices=['mcdropout', 'mccutout', 'mcdropout_mean', 'mcdropout_mean_sampling'])
     # Monte-Calor
     parser.add_argument('--vcc_mc_upd_ratio', type=float, default=1.0)
     parser.add_argument('--vcc_mc_keep_p', type=float, default=0.5)
@@ -189,6 +191,11 @@ def get_config():
     # resume from checkpoint
     save_path = os.path.join(args.save_dir, args.save_name)
     load_path = os.path.join(save_path, 'latest_model.pth')
+    if args.resume and args.load_path and not os.path.exists(load_path):
+        if not os.path.isdir(save_path):
+            os.mkdir(save_path)
+        shutil.copy(args.load_path, load_path)
+        args.load_path = load_path
     if 'debug' not in save_path and os.path.exists(load_path) and not args.resume:
         args.resume = True
         args.overwrite = False
