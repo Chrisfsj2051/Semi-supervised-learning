@@ -21,13 +21,16 @@ def get_config():
     parser.add_argument('--vcc_training_warmup', type=int, default=2 ** 30)
     parser.add_argument('--vcc_selection_warmup', type=int, default=2 ** 30)
     parser.add_argument('--vcc_lab_loss_weight', type=float, default=0.0)
-    parser.add_argument('--vcc_unlab_loss_weight', type=float, default=0.0)
+    parser.add_argument('--vcc_unlab_recon_loss_weight', type=float, default=0.0)
+    parser.add_argument('--vcc_unlab_kl_loss_weight', type=float, default=0.0)
     parser.add_argument('--vcc_p_cutoff', type=float, default=0.95)
     parser.add_argument('--vcc_only_supervised', type=bool, default=False)
     parser.add_argument('--vcc_disable_variance', type=bool, default=False)
     # Uncertainty
     parser.add_argument('--vcc_uncertainty_method', type=str, default='mcdropout',
                         choices=['mcdropout', 'mccutout', 'mcdropout_mean', 'mcdropout_mean_sampling'])
+    parser.add_argument('--vcc_recon_loss', type=str, default='cross_entropy',
+                        choices=['cross_entropy', 'mse', 'mae'])
     # Monte-Calor
     parser.add_argument('--vcc_mc_upd_ratio', type=float, default=1.0)
     parser.add_argument('--vcc_mc_keep_p', type=float, default=0.5)
@@ -201,9 +204,9 @@ def get_config():
         assert 'debug' in args.save_dir
     else:
         if args.resume and args.load_path and not os.path.exists(load_path):
-            print(f'Latest model path {load_path} not exists. {os.listdir(save_path)}')
             if not os.path.isdir(save_path):
                 os.mkdir(save_path)
+            print(f'Latest model path {load_path} not exists. {os.listdir(save_path)}')
             shutil.copy(args.load_path, load_path)
             args.load_path = load_path
         if os.path.exists(load_path):

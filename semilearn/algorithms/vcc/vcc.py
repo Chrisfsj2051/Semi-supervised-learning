@@ -16,7 +16,8 @@ class VCC(FlexMatch):
         super().__init__(args, net_builder, tb_log, logger)
         self.vcc_training_warmup = args.vcc_training_warmup
         self.vcc_selection_warmup = args.vcc_selection_warmup
-        self.vcc_unlab_loss_weight = args.vcc_unlab_loss_weight
+        self.vcc_unlab_recon_loss_weight = args.vcc_unlab_recon_loss_weight
+        self.vcc_unlab_kl_loss_weight = args.vcc_unlab_kl_loss_weight
         self.vcc_lab_loss_weight = args.vcc_lab_loss_weight
         self.only_supervised = args.vcc_only_supervised
         num_ulb = len(self.dataset_dict['train_ulb'])
@@ -25,8 +26,16 @@ class VCC(FlexMatch):
         self.uncertainty_ema_step = args.vcc_mc_upd_ratio
 
     def compute_vcc_loss(self, recon_pred, recon_gt, logvar, mu, mask):
-        recon_r_log_softmax = torch.log_softmax(recon_pred, -1)
-        recon_loss = (torch.mean(-recon_gt * recon_r_log_softmax, 1) * mask).mean()
+        if self.args.vcc_recon_loss == 'cross_entropy':
+            recon_r_log_softmax = torch.log_softmax(recon_pred, -1)
+            recon_loss = (torch.mean(-recon_gt * recon_r_log_softmax, 1) * mask).mean()
+        elif self.args.vcc_recon_loss == 'mae' or self.args.vcc_recon_loss == 'mse':
+            recon_r_softmax = torch.softmax(recon_pred, -1)
+            if self.args.vcc_recon_loss == 'mae':
+                recon_loss = torch.nn.L1Loss()(recon_r_softmax, recon_gt)
+            else:
+                recon_loss = torch.nn.MSELoss()(recon_r_softmax, recon_gt)
+
         kl_loss = (-0.5 * torch.sum(1 + logvar - mu ** 2 - logvar.exp(), dim=1) * mask).mean()
         return {
             'recon_loss': recon_loss.mean(),
@@ -79,12 +88,13 @@ class VCC(FlexMatch):
             sup_loss = ce_loss(logits_x_lb, y_lb, reduction='mean')
 
             vcc_logits = logits_x_ulb_w
-            vcc_unlab_loss_weight = 0.0
+            vcc_unlab_recon_loss_weight, vcc_unlab_kl_loss_weight = 0.0, 0.0
             vcc_lab_loss_weight = 0.0
             softmax_x_ulb = True
 
             if self.it > self.vcc_training_warmup:
-                vcc_unlab_loss_weight = self.vcc_unlab_loss_weight
+                vcc_unlab_recon_loss_weight = self.vcc_unlab_recon_loss_weight
+                vcc_unlab_kl_loss_weight = self.vcc_unlab_kl_loss_weight
                 vcc_lab_loss_weight = self.vcc_lab_loss_weight
                 self.p_cutoff = self.args.p_cutoff
             if self.it > self.vcc_selection_warmup:
@@ -107,14 +117,18 @@ class VCC(FlexMatch):
 
             recon_gt_ulb_w = self.update_uncertainty_map(idx_ulb, recon_gt_ulb_w)
             vcc_loss_ulb_w = self.compute_vcc_loss(recon_pred_ulb_w, recon_gt_ulb_w, logvar_ulb_w, mu_ulb_w, mask)
-            recon_loss_ulb_w = vcc_loss_ulb_w['recon_loss'] * vcc_unlab_loss_weight
-            kl_loss_ulb_w = vcc_loss_ulb_w['kl_loss'] * vcc_unlab_loss_weight
+            recon_loss_ulb_w = vcc_loss_ulb_w['recon_loss'] * vcc_unlab_recon_loss_weight
+            kl_loss_ulb_w = vcc_loss_ulb_w['kl_loss'] * vcc_unlab_kl_loss_weight
             vcc_loss_lb = self.compute_vcc_loss(recon_pred_lb, recon_gt_lb, logvar_lb, mu_lb,
                                                 mask.new_ones(recon_pred_lb.shape[0]))
             recon_loss_lb = vcc_loss_lb['recon_loss'] * vcc_lab_loss_weight
             kl_loss_lb = vcc_loss_lb['kl_loss'] * vcc_lab_loss_weight
             total_loss = (sup_loss + unsup_loss + recon_loss_ulb_w +
                           kl_loss_ulb_w + kl_loss_lb + recon_loss_lb)
+            # total_loss *= 0
+            # for index in range(10):
+            #     print('vae: \n', calibrated_logits_ulb_w.softmax(1)[index].topk(1))
+            #     print('gt: \n', recon_gt_ulb_w[index].topk(1), '\n...........')
 
             # parameter updates
         self.call_hook("param_update", "ParamUpdateHook", loss=total_loss)

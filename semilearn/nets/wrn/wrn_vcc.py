@@ -81,7 +81,17 @@ class VariationalConfidenceCalibration(nn.Module):
             h = torch.randn(x.shape[0], self.z_dim * 2).to(x.device)
             sample_mu, sample_logvar = h.chunk(2, dim=1)
             z = self.reparameterise(sample_mu, sample_logvar)
-            cali_output = self.decoder(logits, feats, z)  # pseudo label selection
+            cali_output = self.decoder(logits, feats, z)
+            # for idx in range(self.args.batch_size, self.args.batch_size * 8):
+            #     import math
+            #     if math.fabs(recon_r.softmax(1)[idx].max() - cali_gt_label[idx].max()) < 0.05:
+            #         continue
+            #     print(cali_gt_label[idx].topk(1), '\n')
+            #     for _ in range(3):
+            #         z = self.reparameterise(sample_mu, sample_logvar)
+            #         cali_output = self.decoder(logits, feats, z)
+            #         print(cali_output.softmax(1)[idx].topk(1))
+            #     print('==============')
 
         return {
             'logits': logits,

@@ -3,6 +3,7 @@ save_dir: ./saved_models/debug
 save_name: vcc_cifar100_400_4gpu_dv_mcmean
 vcc_uncertainty_method: mcdropout_mean
 vcc_mc_sampling_times: 20
+vcc_recon_loss: mae
 vcc_mc_keep_p: 0.7
 vcc_disable_variance: False
 resume: True
