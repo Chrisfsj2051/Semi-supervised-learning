@@ -160,7 +160,7 @@ class AlgorithmBase:
     def set_optimizer(self):
         self.print_fn("Create optimizer and scheduler")
         train_iter = self.num_train_iter
-        if self.args.datadiet_method and self.args.datadiet_adjust_lr_decay:
+        if self.args.datadiet_method:
             self.print_fn("Adjust cosine learning rate according to data diet ratio")
             train_iter = self.args.datadiet_keep_num / len(self.dataset_dict['train_ulb']) * train_iter
         optimizer = get_optimizer(self.model, self.args.optim, self.args.lr, self.args.momentum, self.args.weight_decay, self.args.layer_decay)

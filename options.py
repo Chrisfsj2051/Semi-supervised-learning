@@ -189,19 +189,29 @@ def get_config():
     args.batch_size = args.batch_size // gpu_count
 
     # resume from checkpoint
+    is_local_debug = args.c.split('/')[-1] == 'debug.yaml'
     save_path = os.path.join(args.save_dir, args.save_name)
     load_path = os.path.join(save_path, 'latest_model.pth')
-    if args.resume and args.load_path and not os.path.exists(load_path):
-        if not os.path.isdir(save_path):
-            os.mkdir(save_path)
-        shutil.copy(args.load_path, load_path)
-        args.load_path = load_path
-    if 'debug' not in save_path and os.path.exists(load_path) and not args.resume:
-        args.resume = True
-        args.overwrite = False
-        args.load_path = load_path
-        print(f'Reset overwrite=False and loadpath={args.load_path}')
-    elif os.path.exists(save_path) and not os.path.exists(load_path):
+    if is_local_debug:
+        print(f'Is local debug, reset attributes.')
+        if args.dataset == 'cifar100':
+            args.batch_size = 8
+        args.num_workers = 0
         args.overwrite = True
-        print(f'Reset overwrite=True')
+        assert 'debug' in args.save_dir
+    else:
+        if args.resume and args.load_path and not os.path.exists(load_path):
+            print(f'Latest model path {load_path} not exists. {os.listdir(save_path)}')
+            if not os.path.isdir(save_path):
+                os.mkdir(save_path)
+            shutil.copy(args.load_path, load_path)
+            args.load_path = load_path
+        if os.path.exists(load_path):
+            args.resume = True
+            args.overwrite = False
+            args.load_path = load_path
+            print(f'Reset overwrite=False and loadpath={args.load_path}')
+        elif os.path.exists(save_path) and not os.path.exists(load_path):
+            args.overwrite = True
+            print(f'Reset overwrite=True')
     return args

@@ -6,7 +6,7 @@ datadiet_interval: 2
 datadiet_keep_num: 10000
 datadiet_method: influence
 load_path: None
-overwrite: False
+overwrite: True
 save_interval: 10
 use_tensorboard: True
 epoch: 20
