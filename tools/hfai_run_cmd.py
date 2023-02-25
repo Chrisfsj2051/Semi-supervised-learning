@@ -22,6 +22,6 @@ if __name__ == '__main__':
     else:
         for root, _, filenames in os.walk(args.cfg_folder):
             for filename in filenames:
-                if not filename.endswith('yaml'):
+                if not filename.endswith('yaml') or 'archive' in root:
                     continue
                 print(hfai_formatter % (root, filename, filename[:-5]))

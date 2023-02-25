@@ -1,6 +1,6 @@
 from semilearn.nets.wrn.wrn import wrn_28_2, wrn_28_8
 from semilearn.nets.wrn.wrn_var import wrn_var_37_2
-from semilearn.nets.wrn.vcc_enc_dec import VCCEarlyFusionEncoder, VCCEarlyFusionDecoder, VCCLateFusionDecoder
+from semilearn.nets.wrn.vcc_enc_dec import VCCEarlyFusionEncoder, VCCEarlyFusionDecoder
 from semilearn.nets.plugins.dropblock import DropBlock2D
 import torch.nn as nn
 import torch
@@ -20,8 +20,8 @@ class VariationalConfidenceCalibration(nn.Module):
         self.detach_input = args.vcc_detach_input
         self.encoder = VCCEarlyFusionEncoder(args, base_net)
         decoder_type = VCCEarlyFusionDecoder
-        if args.vcc_dec_model == 'late_fusion':
-            decoder_type = VCCLateFusionDecoder
+        # if args.vcc_dec_model == 'late_fusion':
+        #     decoder_type = VCCLateFusionDecoder
         self.decoder = decoder_type(args, base_net)
 
     def reparameterise(self, mu, logvar):
@@ -72,16 +72,16 @@ class VariationalConfidenceCalibration(nn.Module):
         backbone_output = self.base_net(x, only_fc, only_feat, **kwargs)
         logits, feats = backbone_output['logits'], backbone_output['feat']
         cali_gt_label = self.calc_uncertainty(x, feats)
-        h = self.encoder(logits, feats)
+        h = self.encoder(x, logits, feats)
         mu, logvar = h.chunk(2, dim=1)
         z = self.reparameterise(mu, logvar)
-        recon_r = self.decoder(logits, feats, z)  # train vcc
+        recon_r = self.decoder(x, logits, feats, z)  # train vcc
 
         with torch.no_grad():
             h = torch.randn(x.shape[0], self.z_dim * 2).to(x.device)
             sample_mu, sample_logvar = h.chunk(2, dim=1)
             z = self.reparameterise(sample_mu, sample_logvar)
-            cali_output = self.decoder(logits, feats, z)
+            cali_output = self.decoder(x, logits, feats, z)
             # for idx in range(self.args.batch_size, self.args.batch_size * 8):
             #     import math
             #     if math.fabs(recon_r.softmax(1)[idx].max() - cali_gt_label[idx].max()) < 0.05:

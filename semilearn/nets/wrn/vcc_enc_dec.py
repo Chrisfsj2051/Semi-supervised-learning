@@ -14,83 +14,70 @@ class VCCBaseEncoderDecoder(nn.Module):
         self.enc_with_ln = args.vcc_enc_norm in ['ln', 'bn+ln']
         self.dec_with_bn = args.vcc_dec_norm in ['bn', 'bn+ln']
         self.dec_with_ln = args.vcc_dec_norm in ['ln', 'bn+ln']
-        self.model = self.build_model()
 
-    def build_simple_mlp(self, dims, with_bn):
+    def build_simple_mlp(self, dims, with_bn, activation):
+        if activation == 'relu':
+            activation = nn.ReLU
+        elif activation == 'elu':
+            activation = nn.ELU
         results = []
         for i in range(len(dims) - 1):
             results.append(nn.Linear(dims[i], dims[i + 1]))
-            if i != len(dims) - 2:
-                if with_bn == 'bn':
-                    results.append(nn.BatchNorm2d(dims[i + 1]))
-                results.append(nn.ReLU(inplace=True))
+            results.append(activation(inplace=True))
         return results
 
+
 class VCCEarlyFusionEncoder(VCCBaseEncoderDecoder):
-    def build_model(self):
+
+    def __init__(self, args, base_net):
+        super(VCCEarlyFusionEncoder, self).__init__(args, base_net)
         if self.enc_with_ln:
             self.logits_ln = nn.LayerNorm(self.num_classes)
             self.feats_ln = nn.LayerNorm(self.base_net_channels)
-        encoder_dims = ([self.num_classes + self.base_net_channels] +
-                        self.args.vcc_encoder_dims + [2 * self.z_dim])
-        return nn.Sequential(*self.build_simple_mlp(encoder_dims, self.enc_with_bn))
+        shared_dims = ([self.num_classes + self.base_net_channels] +
+                       self.args.vcc_encoder_dims)
+        self.shared_branch = nn.Sequential(
+            *self.build_simple_mlp(shared_dims, self.enc_with_bn, activation='elu'))
+        self.mu_branch = nn.Sequential(
+            nn.Linear(shared_dims[-1], self.z_dim),
+            nn.ELU(inplace=True)
+        )
+        self.logvar_branch = nn.Sequential(
+            nn.Linear(shared_dims[-1], self.z_dim),
+            nn.ELU(inplace=True)
+        )
 
-    def forward(self, logits, feats):
+    def forward(self, img, logits, feats):
         if self.enc_with_ln:
             logits = self.logits_ln(logits)
             feats = self.feats_ln(feats)
         encoder_x = torch.cat([logits, feats], 1)
         if self.args.vcc_detach_input:
             encoder_x = encoder_x.detach()
-        return self.model(encoder_x)
+        shared_embedding = self.shared_branch(encoder_x)
+        mu = self.mu_branch(shared_embedding)
+        logvar = self.logvar_branch(shared_embedding)
+        return torch.cat([mu, logvar], 1)
+
 
 class VCCEarlyFusionDecoder(VCCBaseEncoderDecoder):
-    def build_model(self):
+    def __init__(self, args, base_net):
+        super(VCCEarlyFusionDecoder, self).__init__(args, base_net)
         if self.dec_with_ln:
             self.logits_ln = nn.LayerNorm(self.num_classes)
             self.feats_ln = nn.LayerNorm(self.base_net_channels)
         decoder_dims = ([self.num_classes + self.base_net_channels + self.z_dim] +
-                        self.args.vcc_decoder_dims + [self.num_classes])
-        return nn.Sequential(*self.build_simple_mlp(decoder_dims, self.dec_with_bn))
+                        self.args.vcc_decoder_dims)
+        self.model = nn.Sequential(
+            *self.build_simple_mlp(decoder_dims, self.dec_with_bn, activation='relu'))
+        self.fc = nn.Linear(decoder_dims[-1], self.num_classes)
 
-    def forward(self, logits, feats, z):
+    def forward(self, img, logits, feats, z):
         if self.dec_with_ln:
             logits = self.logits_ln(logits)
             feats = self.feats_ln(feats)
         decoder_x = torch.cat([logits, feats, z], 1)
         if self.args.vcc_detach_input:
             decoder_x = decoder_x.detach()
-        return self.model(decoder_x)
-
-
-class VCCLateFusionDecoder(VCCBaseEncoderDecoder):
-    def build_model(self):
-        def build_single_branch(dims, with_bn, with_ln):
-            results = self.build_simple_mlp(dims + [1], with_bn)[:-1]
-            results = ([nn.LayerNorm(dims[0])] if with_ln else []) + results
-            return results
-
-        dims = self.args.vcc_decoder_dims
-        logits_branch = build_single_branch(
-            [self.num_classes] + dims, self.dec_with_bn, self.dec_with_ln)
-        feats_branch = build_single_branch(
-            [self.base_net_channels] + dims, self.dec_with_bn, self.dec_with_ln)
-        merged_branch = build_single_branch(
-            [dims[-1] * 2 + self.z_dim, self.num_classes], False, False)
-
-        return nn.ModuleDict({
-            'logits': nn.Sequential(*logits_branch),
-            'feats': nn.Sequential(*feats_branch),
-            'merged': nn.Sequential(*merged_branch)
-        })
-
-    def forward(self, logits, feats, z):
-        if self.args.vcc_detach_input:
-            # TODO: detach z?
-            logits = logits.detach()
-            feats = feats.detach()
-
-        logits = self.model['logits'](logits)
-        feats = self.model['feats'](feats)
-        merged = torch.cat([logits, feats, z], 1)
-        return self.model['merged'](merged)
+        embedding = self.model(decoder_x)
+        return self.fc(embedding)

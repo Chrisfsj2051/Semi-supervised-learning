@@ -93,9 +93,10 @@ class VCC(FlexMatch):
             softmax_x_ulb = True
 
             if self.it > self.vcc_training_warmup:
-                vcc_unlab_recon_loss_weight = self.vcc_unlab_recon_loss_weight
-                vcc_unlab_kl_loss_weight = self.vcc_unlab_kl_loss_weight
-                vcc_lab_loss_weight = self.vcc_lab_loss_weight
+                loss_warmup_alpha = min((self.it - self.vcc_training_warmup) / 100, 1.0)
+                vcc_unlab_recon_loss_weight = self.vcc_unlab_recon_loss_weight * loss_warmup_alpha
+                vcc_unlab_kl_loss_weight = self.vcc_unlab_kl_loss_weight * loss_warmup_alpha
+                vcc_lab_loss_weight = self.vcc_lab_loss_weight * loss_warmup_alpha
                 self.p_cutoff = self.args.p_cutoff
             if self.it > self.vcc_selection_warmup:
                 if self.args.vcc_disable_variance:
@@ -179,7 +180,6 @@ class VCC(FlexMatch):
 
                 output = self.model(x)
                 logits = output['logits']
-
 
                 loss = F.cross_entropy(logits, y, reduction='mean')
                 y_true.extend(y.cpu().tolist())

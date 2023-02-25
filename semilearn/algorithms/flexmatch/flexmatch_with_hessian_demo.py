@@ -79,6 +79,8 @@ class FlexMatch(AlgorithmBase):
 
             sup_loss = ce_loss(logits_x_lb, y_lb, reduction='mean')
 
+            from torch.autograd.functional import jacobian, hessian
+            from torch.nn.utils import _stateless
             # only return logits
             self.model.module.debug_mode = True
             names = list(n for n, _ in self.model.named_parameters())
