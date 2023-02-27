@@ -247,12 +247,15 @@ class AlgorithmBase:
         self.model.train()
         # set self.ema here
         self.call_hook("before_run")
+        num_train_iter = self.num_train_iter
+        if self.args.datadiet_method:
+            num_train_iter = self.args.datadiet_keep_num / len(self.dataset_dict['train_ulb']) * num_train_iter
 
         for epoch in range(self.epoch, self.epochs):
             self.epoch = epoch
             
             # prevent the training iterations exceed args.num_train_iter
-            if self.it >= self.num_train_iter:
+            if self.it >= num_train_iter:
                 break
             
             self.call_hook("before_train_epoch")
@@ -260,7 +263,7 @@ class AlgorithmBase:
             for data_lb, data_ulb in zip(self.loader_dict['train_lb'],
                                          self.loader_dict['train_ulb']):
                 # prevent the training iterations exceed args.num_train_iter
-                if self.it >= self.num_train_iter:
+                if self.it >= num_train_iter:
                     break
 
                 self.call_hook("before_train_step")

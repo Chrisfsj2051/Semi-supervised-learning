@@ -29,14 +29,22 @@ class DataDietBaseHook(Hook):
         algorithm.loader_dict['train_ulb'].sampler.set_pruned_indices(None)
         self.idx2score = {}
 
+    def process(self, algorithm):
+        algorithm.print_fn(f"Start pruning: method={str(self.__class__)[:-2].split('.')[-1]}, "
+                           f"epoch={algorithm.epoch}, it={algorithm.it}")
+        self.reset_status(algorithm)
+        args = algorithm.args
+        total_samples = len(algorithm.loader_dict['train_ulb']) * args.batch_size * (1 + args.uratio)
+        ratio = total_samples / len(algorithm.dataset_dict['train_ulb'])
+        keep_num = math.ceil(args.datadiet_keep_num * ratio)
+        predictions = self.predict(algorithm)
+        self.apply_prune(algorithm, keep_num, predictions)
+
+
+    def before_run(self, algorithm):
+        if algorithm.epoch > 1:
+            self.process(algorithm)
+
     def before_train_epoch(self, algorithm):
         if algorithm.epoch > 1 and self.every_n_epochs(algorithm, algorithm.args.datadiet_interval):
-            algorithm.print_fn(f"Start pruning: method={str(self.__class__)[:-2].split('.')[-1]}, "
-                               f"epoch={algorithm.epoch}, it={algorithm.it}")
-            self.reset_status(algorithm)
-            args = algorithm.args
-            total_samples = len(algorithm.loader_dict['train_ulb']) * args.batch_size * (1 + args.uratio)
-            ratio = total_samples / len(algorithm.dataset_dict['train_ulb'])
-            keep_num = math.ceil(args.datadiet_keep_num * ratio)
-            predictions = self.predict(algorithm)
-            self.apply_prune(algorithm, keep_num, predictions)
+            self.process(algorithm)
