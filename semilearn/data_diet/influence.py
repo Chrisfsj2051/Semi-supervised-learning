@@ -60,6 +60,9 @@ class DataDietInfluenceHook(DataDietBaseHook):
             ulb_loss = ce_loss(logits_s, pseudo_label, reduction='none')
 
             group_num = 16
+            if algorithm.args.__contains__('datadiet_influence_group_size'):
+                group_num = algorithm.args.datadiet_influence_group_size
+
             for (idx_group, loss_group, mask_group) in zip(
                     idx.chunk(group_num), ulb_loss.chunk(group_num),
                     pseudo_mask.chunk(group_num)):

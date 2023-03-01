@@ -72,7 +72,7 @@ class VCC(FlexMatch):
                     inputs = torch.cat((x_lb, x_lb, x_lb))
                 else:
                     inputs = torch.cat((x_lb, x_ulb_w, x_ulb_s))
-                outputs = self.model(inputs)
+                outputs = self.model(self, inputs, ulb_x_idx=idx_ulb)
                 logits_x_lb = outputs['logits'][:num_lb]
                 logits_x_ulb_w, logits_x_ulb_s = outputs['logits'][num_lb:].chunk(2)
                 recon_pred_ulb_w, recon_pred_ulb_s = outputs['recon_pred'][num_lb:].chunk(2)
@@ -149,12 +149,14 @@ class VCC(FlexMatch):
         save_dict = super().get_save_dict()
         save_dict['uncertainty_selected'] = self.uncertainty_selected.cpu()
         save_dict['uncertainty_ema_map'] = self.uncertainty_ema_map.cpu()
+        save_dict = self.model.module.update_save_dict(save_dict)
         return save_dict
 
     def load_model(self, load_path):
         checkpoint = super().load_model(load_path)
         self.uncertainty_selected = checkpoint['uncertainty_selected'].cuda(self.gpu)
         self.uncertainty_ema_map = checkpoint['uncertainty_ema_map'].cuda(self.gpu)
+        self.model.module.load_model(checkpoint)
         self.print_fn("additional VCC parameter loaded")
         return checkpoint
 
@@ -178,14 +180,14 @@ class VCC(FlexMatch):
                 num_batch = y.shape[0]
                 total_num += num_batch
 
-                output = self.model(x)
+                output = self.model(self, x)
                 logits = output['logits']
 
                 loss = F.cross_entropy(logits, y, reduction='mean')
                 y_true.extend(y.cpu().tolist())
                 y_pred.extend(torch.max(logits, dim=-1)[1].cpu().tolist())
                 y_logits.append(logits.cpu().numpy())
-                if self.args.vcc_disable_variance:
+                if self.args.vcc_disable_variance and self.args.vcc_uncertainty_method != 'consistency':
                     y_probs.append(output['recon_gt'].cpu().numpy())
                 else:
                     y_probs.append(torch.softmax(output['calibrated_logits'], dim=-1).cpu().numpy())

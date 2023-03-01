@@ -50,7 +50,7 @@ def get_config():
     parser.add_argument('--datadiet_keep_num', type=int, default=2 ** 30)
     parser.add_argument('--datadiet_method', type=str, default=None)
     parser.add_argument('--datadiet_adjust_lr_decay', type=bool, default=False)
-
+    parser.add_argument('--datadiet_influence_group_size', default=16, type=int)
     '''
     Additional Dataset Args
     '''
@@ -205,7 +205,7 @@ def get_config():
     else:
         if args.resume and args.load_path and not os.path.exists(load_path):
             if not os.path.isdir(save_path):
-                os.mkdir(save_path)
+                os.makedirs(save_path)
             print(f'Latest model path {load_path} not exists. {os.listdir(save_path)}')
             shutil.copy(args.load_path, load_path)
             args.load_path = load_path
