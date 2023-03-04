@@ -153,7 +153,7 @@ class VCC(FlexMatch):
         return save_dict
 
     def load_model(self, load_path):
-        checkpoint = super().load_model(load_path)
+        checkpoint = super(VCC, self).load_model(load_path)
         self.uncertainty_selected = checkpoint['uncertainty_selected'].cuda(self.gpu)
         self.uncertainty_ema_map = checkpoint['uncertainty_ema_map'].cuda(self.gpu)
         self.model.module.load_model(checkpoint)

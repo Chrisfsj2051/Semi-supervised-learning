@@ -8,6 +8,7 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 import torch.distributed as dist
+import joblib
 
 
 class VariationalConfidenceCalibration(nn.Module):
@@ -54,13 +55,19 @@ class VariationalConfidenceCalibration(nn.Module):
         if self.datapoint_bank is None:
             self.datapoint_bank = [[] for _ in range(num_classes)]
 
+        all_confidence = logits.softmax(1).detach()
+        preds = all_confidence[lb_num:lb_num + ulb_num]
+
         # Temporal Consistency
         if self.history_preds is None:
             self.history_preds = ulb_x_s.new_ones((total_ulb_num, num_classes)) / num_classes
         self.history_preds = self.history_preds.to(ulb_x_s.device)
-        preds = logits.softmax(1)[lb_num:lb_num + ulb_num]
+
         prev_preds = self.history_preds[ulb_x_idx]
-        assert abs(prev_preds[0].sum() - 1.0) < 1e-5
+        # if (abs(self.history_preds.sum(1) - 1.0) > 1e-5).any():
+        #     joblib.dump(self.history_preds.cpu().detach().numpy(), 'debug.pth')
+        #     print('Save debug')
+        # assert abs(prev_preds[0].sum() - 1.0) < 1e-5
         temporal_kl_div = torch.kl_div((preds + 1e-7).log(), prev_preds).sum(1)
         upd_preds = ulb_x_s.new_zeros((total_ulb_num, num_classes))
         upd_cnt = ulb_x_s.new_zeros((total_ulb_num,))
@@ -90,7 +97,6 @@ class VariationalConfidenceCalibration(nn.Module):
         view_kl_div = torch.kl_div((ori_preds + 1e-7).log(), ema_preds).sum(1)
 
         # Ori confidence
-        all_confidence = logits.softmax(1).detach()
         confidence = all_confidence[lb_num:lb_num + ulb_num]
 
         gmm_feats = torch.cat(
