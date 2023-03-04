@@ -28,18 +28,19 @@ class VCC(FlexMatch):
     def compute_vcc_loss(self, recon_pred, recon_gt, logvar, mu, mask):
         if self.args.vcc_recon_loss == 'cross_entropy':
             recon_r_log_softmax = torch.log_softmax(recon_pred, -1)
-            recon_loss = (torch.mean(-recon_gt * recon_r_log_softmax, 1) * mask).mean()
+            recon_loss = (torch.sum(-recon_gt * recon_r_log_softmax, 1) * mask).mean()
         elif self.args.vcc_recon_loss == 'mae' or self.args.vcc_recon_loss == 'mse':
             recon_r_softmax = torch.softmax(recon_pred, -1)
             if self.args.vcc_recon_loss == 'mae':
-                recon_loss = torch.nn.L1Loss()(recon_r_softmax, recon_gt)
+                recon_loss = torch.nn.L1Loss(reduction='none')(recon_r_softmax, recon_gt)
             else:
-                recon_loss = torch.nn.MSELoss()(recon_r_softmax, recon_gt)
+                recon_loss = torch.nn.MSELoss(reduction='none')(recon_r_softmax, recon_gt)
+            recon_loss = recon_loss.sum(1).mean(0)
 
         kl_loss = (-0.5 * torch.sum(1 + logvar - mu ** 2 - logvar.exp(), dim=1) * mask).mean()
         return {
-            'recon_loss': recon_loss.mean(),
-            'kl_loss': kl_loss.mean()
+            'recon_loss': recon_loss,
+            'kl_loss': kl_loss
         }
 
     def update_uncertainty_map(self, idx_ulb, recon_gt_ulb_w):
@@ -126,10 +127,11 @@ class VCC(FlexMatch):
             kl_loss_lb = vcc_loss_lb['kl_loss'] * vcc_lab_loss_weight
             total_loss = (sup_loss + unsup_loss + recon_loss_ulb_w +
                           kl_loss_ulb_w + kl_loss_lb + recon_loss_lb)
-            # total_loss *= 0
+
             # for index in range(10):
             #     print('vae: \n', calibrated_logits_ulb_w.softmax(1)[index].topk(1))
-            #     print('gt: \n', recon_gt_ulb_w[index].topk(1), '\n...........')
+            #     print('cali_gt: \n', recon_gt_ulb_w[index].topk(1))
+            #     print('ori_conf: \n', logits_x_ulb_w.softmax(1)[index].topk(1), '\n...........')
 
             # parameter updates
         self.call_hook("param_update", "ParamUpdateHook", loss=total_loss)
