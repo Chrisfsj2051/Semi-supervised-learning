@@ -55,7 +55,7 @@ class DataDietInfluenceHook(DataDietBaseHook):
             conf_w = torch.softmax(logits_w, 1)
             pseudo_conf, pseudo_label = conf_w.max(1)
             # 1: selected; 0: ignored
-            pseudo_mask = pseudo_conf > threshold[pseudo_label]
+            pseudo_mask = (pseudo_conf > threshold[pseudo_label]).detach()
             # LRU????????
             ulb_loss = ce_loss(logits_s, pseudo_label, reduction='none')
 

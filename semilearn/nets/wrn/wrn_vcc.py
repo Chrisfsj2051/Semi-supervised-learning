@@ -197,7 +197,6 @@ class VariationalConfidenceCalibration(nn.Module):
         assert not only_feat
         backbone_output = self.base_net(x, only_fc, only_feat, **kwargs)
         logits, feats = backbone_output['logits'], backbone_output['feat']
-        print(list(self.encoder.parameters())[0].mean(), list(self.encoder.parameters())[0].max())
         if ulb_x_idx is not None:
             cali_gt_label = self.calc_uncertainty(
                 algorithm=algorithm, x=x, ulb_x_idx=ulb_x_idx, feats=feats, logits=logits)

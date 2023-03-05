@@ -1,10 +1,10 @@
 algorithm: flexmatch
-save_dir: ./saved_models/data_diet/cifar10/random/
-save_name: flexmatch_cifar10_250_keep30000_4gpu
+save_dir: ./saved_models/data_diet/cifar10/influence/
+save_name: flexmatch_cifar10_250_keep5000_4gpu
 resume: False
 datadiet_interval: 40
-datadiet_keep_num: 30000
-datadiet_method: random
+datadiet_keep_num: 5000
+datadiet_method: influence
 load_path: None
 overwrite: False
 save_interval: 20000

@@ -34,7 +34,7 @@ class DataDietBaseHook(Hook):
                            f"epoch={algorithm.epoch}, it={algorithm.it}")
         self.reset_status(algorithm)
         args = algorithm.args
-        total_samples = len(algorithm.loader_dict['train_ulb']) * args.batch_size * (1 + args.uratio)
+        total_samples = len(algorithm.loader_dict['train_ulb']) * args.batch_size * args.uratio
         ratio = total_samples / len(algorithm.dataset_dict['train_ulb'])
         keep_num = math.ceil(args.datadiet_keep_num * ratio)
         predictions = self.predict(algorithm)
