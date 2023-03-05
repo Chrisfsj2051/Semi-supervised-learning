@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from itertools import chain
 import torch
 
 from semilearn.algorithms.flexmatch import FlexMatch
@@ -63,6 +64,12 @@ class VCC(FlexMatch):
         self.uncertainty_ema_map[idx_ulb] = updated_value
         return updated_value
 
+    def set_vcc_requires_grad(self, requires_grad):
+        params_list = chain(self.model.module.encoder.parameters(),
+                            self.model.module.decoder.parameters())
+        for param in params_list:
+            param.requires_grad = requires_grad
+
     def train_step(self, x_lb, y_lb, idx_ulb, x_ulb_w, x_ulb_s):
         num_lb = y_lb.shape[0]
 
@@ -92,6 +99,11 @@ class VCC(FlexMatch):
             vcc_unlab_recon_loss_weight, vcc_unlab_kl_loss_weight = 0.0, 0.0
             vcc_lab_loss_weight = 0.0
             softmax_x_ulb = True
+
+            if self.it < self.vcc_training_warmup:
+                self.set_vcc_requires_grad(False)
+            elif self.it == self.vcc_training_warmup:
+                self.set_vcc_requires_grad(True)
 
             if self.it > self.vcc_training_warmup:
                 loss_warmup_alpha = min((self.it - self.vcc_training_warmup) / 100, 1.0)

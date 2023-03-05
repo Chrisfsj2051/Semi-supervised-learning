@@ -175,6 +175,16 @@ class VariationalConfidenceCalibration(nn.Module):
         result = result.sum(1).float() / self.sampling_times
         return result, pred
 
+    def eval(self):
+        super(VariationalConfidenceCalibration, self).eval()
+        self.train(False)
+
+    def train(self, mode):
+        super(VariationalConfidenceCalibration, self).train(mode)
+        self.base_net.train(mode)
+        self.decoder.train(mode)
+        self.encoder.train(mode)
+
     def calc_uncertainty(self, **kwargs):
         kwargs['batch_size'] = kwargs['feats'].shape[0]
         kwargs['num_classes'] = self.num_classes
@@ -187,6 +197,7 @@ class VariationalConfidenceCalibration(nn.Module):
         assert not only_feat
         backbone_output = self.base_net(x, only_fc, only_feat, **kwargs)
         logits, feats = backbone_output['logits'], backbone_output['feat']
+        print(list(self.encoder.parameters())[0].mean(), list(self.encoder.parameters())[0].max())
         if ulb_x_idx is not None:
             cali_gt_label = self.calc_uncertainty(
                 algorithm=algorithm, x=x, ulb_x_idx=ulb_x_idx, feats=feats, logits=logits)
