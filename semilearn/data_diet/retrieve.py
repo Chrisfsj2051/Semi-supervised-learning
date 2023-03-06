@@ -5,93 +5,20 @@ import numpy as np
 from semilearn.data_diet.influence import DataDietInfluenceHook
 
 
-# NOTE: Standard Algorithm, e.g. Tropp, ``Greed is Good: Algorithmic Results for Sparse Approximation," IEEE Trans. Info. Theory, 2004.
-def OrthogonalMP_REG_Parallel_V1(A, b, tol=1E-4, nnz=None, positive=False, lam=1, device="cpu"):
-    '''approximately solves min_x |x|_0 s.t. Ax=b using Orthogonal Matching Pursuit
-    Args:
-      A: design matrix of size (d, n)
-      b: measurement vector of length d
-      tol: solver tolerance
-      nnz = maximum number of nonzero coefficients (if None set to n)
-      positive: only allow positive nonzero coefficients
-    Returns:
-       vector of length n
-    '''
-    AT = torch.transpose(A, 0, 1)
-    d, n = A.shape
-    if nnz is None:
-        nnz = n
-    x = torch.zeros(n, device=device)  # ,dtype=torch.float64)
-    resid = b.detach().clone()
-    normb = b.norm().item()
-    indices = []
 
-    argmin = torch.tensor([-1])
-    for i in range(nnz):
-        if resid.norm().item() / normb < tol:
-            break
-        projections = torch.matmul(AT, resid)  # AT.dot(resid)
-        # print("Projections",projections.shape)
-
-        if positive:
-            index = torch.argmax(projections)
-        else:
-            index = torch.argmax(torch.abs(projections))
-
-        if index not in indices:
-            indices.append(index)
-
-        if len(indices) == 1:
-            A_i = A[:, index]
-            x_i = projections[index] / torch.dot(A_i, A_i).view(-1)  # A_i.T.dot(A_i)
-            A_i = A[:, index].view(1, -1)
-        else:
-            # print(indices)
-            A_i = torch.cat((A_i, A[:, index].view(1, -1)), dim=0)  # np.vstack([A_i, A[:,index]])
-            temp = torch.matmul(A_i, torch.transpose(A_i, 0, 1)) + lam * torch.eye(A_i.shape[0], device=device)
-            x_i, _, _, _ = torch.linalg.lstsq(temp, torch.matmul(A_i, b).view(-1, 1))
-            # print(x_i.shape)
-            if positive:
-                while min(x_i) < 0.0:
-                    # print("Negative",b.shape,torch.transpose(A_i, 0, 1).shape,x_i.shape)
-                    argmin = torch.argmin(x_i)
-                    indices = indices[:argmin] + indices[argmin + 1:]
-                    A_i = torch.cat((A_i[:argmin], A_i[argmin + 1:]),
-                                    dim=0)  # np.vstack([A_i[:argmin], A_i[argmin+1:]])
-                    temp = torch.matmul(A_i, torch.transpose(A_i, 0, 1)) + lam * torch.eye(A_i.shape[0], device=device)
-                    x_i, _, _, _ = torch.linalg.lstsq(temp, torch.matmul(A_i, b).view(-1, 1))
-        resid = b - torch.matmul(torch.transpose(A_i, 0, 1), x_i).view(-1)  # A_i.T.dot(x_i)
-    x_i = x_i.view(-1)
-    for i, index in enumerate(indices):
-        try:
-            x[index] += x_i[i]
-        except IndexError:
-            x[index] += x_i
-    return x
-
-
-class DataDietGradMatchHook(DataDietInfluenceHook):
+class DataDietRetrieveHook(DataDietInfluenceHook):
     def __init__(self):
         super().__init__()
         self.id2weight = {}
-        self.lam = 0.5
-        self.eps = 1e-100
 
     def get_batch_weight(self, algorithm, idx_ulb):
         try:
-            weights = [max(self.id2weight[int(i)], 0) for i in idx_ulb]
             # weights = [max(self.id2weight[int(i)], 0) for i in idx_ulb]
-            # weights = idx_ulb.new_tensor(weights, dtype=torch.float).mean()
+            weights = [max(self.id2weight[int(i)], 0) for i in idx_ulb]
+            weights = idx_ulb.new_tensor(weights, dtype=torch.float).mean()
         except Exception:
             weights = [1.0 for _ in idx_ulb]
         return idx_ulb.new_tensor(weights, dtype=torch.float)
-
-    def ompwrapper(self, X, Y, bud, device):
-        reg = OrthogonalMP_REG_Parallel_V1(X, Y, nnz=bud,
-                                           positive=True, lam=self.lam,
-                                           tol=self.eps, device=device)
-        ind = torch.nonzero(reg).view(-1)
-        return ind.tolist(), reg[ind].tolist()
 
     def compute_val_gradient(self, algorithm):
         from semilearn.algorithms.utils.loss import ce_loss
@@ -170,10 +97,10 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
         if diff < 0:
             idxs, gammas = idxs[:diff], gammas[:diff]
         else:
-            remain_list = set(np.arange(len(algorithm.dataset_dict['train_ulb'])))
-            remain_list = list(remain_list.difference(set(idxs)))
+            # remain_list = set(np.arange(len(algorithm.dataset_dict['train_ulb'])))
+            # remain_list = list(remain_list.difference(set(idxs)))
             # random.shuffle(remain_list)
-            # remain_list = np.arange(len(algorithm.dataset_dict['train_ulb']))
+            remain_list = np.arange(len(algorithm.dataset_dict['train_ulb']))
             idxs.extend(remain_list[:diff])
             gammas.extend([1 for _ in range(diff)])
 

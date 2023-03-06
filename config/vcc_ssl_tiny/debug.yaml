@@ -7,8 +7,8 @@ vcc_decoder_dims: [512, 256]
 vcc_mc_sampling_times: 20
 vcc_mc_keep_p: 0.7
 vcc_disable_variance: True
-resume: False
-load_path: saved_models/vcc_ssl_tiny/cifar100/vcc/vcc_cifar100_400_4gpu_consis/model_vcc_training_init.pth
+resume: True
+load_path: saved_models/vcc_ssl_tiny/cifar100/vcc/vcc_cifar100_400_4gpu_consis/latest_model.pth
 vcc_training_warmup: 50
 vcc_selection_warmup: 100
 vcc_lab_loss_weight: 0.0

@@ -88,17 +88,17 @@ class FlexMatch(AlgorithmBase):
                                           use_hard_label=self.use_hard_label,
                                           T=self.T)
 
-            unsup_loss = consistency_loss(logits_x_ulb_s,
-                                          pseudo_label,
-                                          'ce',
-                                          mask=mask)
-
             if 'DataDietHook' in self.hooks_dict.keys():
                 unsup_datadiet_weight = self.call_hook("get_batch_weight", "DataDietHook", idx_ulb=idx_ulb)
             else:
                 unsup_datadiet_weight = 1.0
 
-            total_loss = sup_loss + self.lambda_u * unsup_loss * unsup_datadiet_weight
+            unsup_loss = consistency_loss(logits_x_ulb_s,
+                                          pseudo_label,
+                                          'ce',
+                                          mask=mask * unsup_datadiet_weight)
+
+            total_loss = sup_loss + self.lambda_u * unsup_loss
 
         # parameter updates
         self.call_hook("param_update", "ParamUpdateHook", loss=total_loss)
