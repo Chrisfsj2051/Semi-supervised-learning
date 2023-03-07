@@ -5,7 +5,7 @@ datadiet_influence_group_size: 32
 resume: False
 datadiet_interval: 2
 datadiet_keep_num: 10000
-datadiet_method: influence
+datadiet_method: retrieve
 load_path: None
 overwrite: True
 save_interval: 10

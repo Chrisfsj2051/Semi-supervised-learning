@@ -13,7 +13,7 @@ import torch.nn.functional as F
 from torch.cuda.amp import autocast, GradScaler
 
 from semilearn.core.hooks import Hook, get_priority, CheckpointHook, TimerHook, LoggingHook, DistSamplerSeedHook, ParamUpdateHook, EvaluationHook, EMAHook
-from semilearn.core.hooks import DataDietRandomHook, DataDietInfluenceHook, DataDietEL2NHook, DataDietGradMatchHook
+from semilearn.core.hooks import DataDietRandomHook, DataDietInfluenceHook, DataDietEL2NHook, DataDietGradMatchHook, DataDietRetrieveHook
 from semilearn.core.utils import get_dataset, get_data_loader, get_optimizer, get_cosine_schedule_with_warmup, Bn_Controller
 from semilearn.core.utils import maximum_calibration_error, expected_calibration_error, average_calibration_error, adaptive_expected_calibration_error, classwise_expected_calibration_error
 
@@ -204,6 +204,8 @@ class AlgorithmBase:
             self.register_hook(DataDietInfluenceHook(), "DataDietHook")
         elif self.args.datadiet_method == 'gradmatch':
             self.register_hook(DataDietGradMatchHook(), "DataDietHook")
+        elif self.args.datadiet_method == 'retrieve':
+            self.register_hook(DataDietRetrieveHook(), "DataDietHook")
 
     def process_batch(self, **kwargs):
         """

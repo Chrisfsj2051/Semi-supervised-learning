@@ -33,7 +33,8 @@ class DataDietInfluenceHook(DataDietBaseHook):
         ulb_dset = algorithm.loader_dict['train_ulb']
         threshold = algorithm.call_hook("get_threshold", "MaskingHook")
         training = algorithm.model.training
-        algorithm.model.eval()
+        algorithm.model.zero_grad()
+        # algorithm.model.eval()
         # 1. grad_val
         # TODO: EMA MC DROPOUT
         val_size = algorithm.args.batch_size * algorithm.args.uratio
@@ -75,7 +76,8 @@ class DataDietInfluenceHook(DataDietBaseHook):
                 idx_list.append(idx_group)
                 scores_list.append(score_group)
 
-        algorithm.model.train(mode=training)
+        algorithm.model.zero_grad()
+        # algorithm.model.train(mode=training)
         results = {
             'indices': torch.cat(idx_list),
             'scores': torch.cat(scores_list)

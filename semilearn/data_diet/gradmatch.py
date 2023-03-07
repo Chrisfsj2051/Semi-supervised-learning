@@ -95,6 +95,7 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
 
     def compute_val_gradient(self, algorithm):
         from semilearn.algorithms.utils.loss import ce_loss
+        algorithm.model.zero_grad()
         val_size = algorithm.args.batch_size * algorithm.args.uratio
         mixup_x, mixup_y = self.mixup_sampling(algorithm, algorithm.dataset_dict['train_lb'], val_size)
         model_output = algorithm.model(mixup_x)
@@ -108,18 +109,21 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
         l1_grads = l1_grads.mean(dim=0).view(1, -1)
         val_grads_per_elem = torch.cat((l0_grads.detach(), l1_grads.detach()), dim=1)
         sum_val_grad = torch.sum(val_grads_per_elem, dim=0)
+        algorithm.model.zero_grad()
         return {
             'sum_val_grad': sum_val_grad,
-            'l1_grad': l1_grads,
-            'l0_grad': l0_grads,
+            'l1_grads': l1_grads,
+            'l0_grads': l0_grads,
             'l1_out': feat.detach(),
             'l0_out': logits.detach()
         }
 
     def compute_example_gradient(self, algorithm):
         from semilearn.algorithms.utils.loss import ce_loss
+        algorithm.model.zero_grad()
         ulb_dset = algorithm.loader_dict['train_ulb']
         l0_grads_list, l1_grads_list, idx_list = [], [], []
+        mask_list, pseudo_label_list = [], []
         for ulb_data in ulb_dset:
             x_concat = torch.cat([ulb_data['x_ulb_w'], ulb_data['x_ulb_s']], 0)
             output_concat = algorithm.model(x_concat)
@@ -127,7 +131,8 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
             feat_w, feat_s = output_concat['feat'].chunk(2)
             conf_w = torch.softmax(logits_w, 1)
             pseudo_conf, pseudo_label = conf_w.max(1)
-            ulb_loss = ce_loss(logits_s, pseudo_label, reduction='none').sum()
+            mask = algorithm.call_hook("masking", "MaskingHook", logits_x_ulb=logits_w, idx_ulb=None)
+            ulb_loss = (ce_loss(logits_s, pseudo_label, reduction='none') * mask).sum()
             embDim = feat_s.shape[1]
             l0_grads = torch.autograd.grad(ulb_loss, logits_s)[0]
             l0_expand = torch.repeat_interleave(l0_grads, embDim, dim=1)
@@ -136,17 +141,25 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
             l1_grads = l1_grads.mean(dim=0).view(1, -1)
             idx_list.append(ulb_data['idx_ulb'])
             l0_grads_list.append(l0_grads.detach())
+            mask_list.append(mask.detach())
+            pseudo_label_list.append(pseudo_label.detach())
             l1_grads_list.append(l1_grads.detach())
 
         l0_grads, l1_grads = torch.cat(l0_grads_list, 0), torch.cat(l1_grads_list, 0)
-        return (torch.cat(idx_list), torch.cat([l0_grads, l1_grads], 1))
+        algorithm.model.zero_grad()
+        return {
+            'indices': torch.cat(idx_list),
+            'per_batch_grads': torch.cat([l0_grads, l1_grads], 1),
+            'pseudo_labels': torch.cat(pseudo_label_list, 0),
+            'masks': torch.cat(mask_list, 0)
+        }
 
     def predict(self, algorithm):
-        idxs, per_batch_grads = self.compute_example_gradient(algorithm)
+        per_example_grad_map = self.compute_example_gradient(algorithm)
         sum_val_grads = self.compute_val_gradient(algorithm)['sum_val_grad']
         return {
-            'indices': idxs,
-            'per_batch_grads': per_batch_grads,
+            'indices': per_example_grad_map['indices'],
+            'per_batch_grads': per_example_grad_map['per_batch_grads'],
             'sum_val_grads': sum_val_grads
         }
 
@@ -172,7 +185,7 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
         else:
             remain_list = set(np.arange(len(algorithm.dataset_dict['train_ulb'])))
             remain_list = list(remain_list.difference(set(idxs)))
-            # random.shuffle(remain_list)
+            random.shuffle(remain_list)
             # remain_list = np.arange(len(algorithm.dataset_dict['train_ulb']))
             idxs.extend(remain_list[:diff])
             gammas.extend([1 for _ in range(diff)])

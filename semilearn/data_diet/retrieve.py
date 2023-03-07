@@ -2,11 +2,11 @@ import torch
 import math
 import random
 import numpy as np
-from semilearn.data_diet.influence import DataDietInfluenceHook
+from semilearn.data_diet.gradmatch import DataDietGradMatchHook
 
 
 
-class DataDietRetrieveHook(DataDietInfluenceHook):
+class DataDietRetrieveHook(DataDietGradMatchHook       ):
     def __init__(self):
         super().__init__()
         self.id2weight = {}
@@ -20,62 +20,53 @@ class DataDietRetrieveHook(DataDietInfluenceHook):
             weights = [1.0 for _ in idx_ulb]
         return idx_ulb.new_tensor(weights, dtype=torch.float)
 
-    def compute_val_gradient(self, algorithm):
-        from semilearn.algorithms.utils.loss import ce_loss
-        val_size = algorithm.args.batch_size * algorithm.args.uratio
-        mixup_x, mixup_y = self.mixup_sampling(algorithm, algorithm.dataset_dict['train_lb'], val_size)
-        model_output = algorithm.model(mixup_x)
-        feat, logits = model_output['feat'], model_output['logits']
-        embDim = feat.shape[1]
-        loss = ce_loss(logits, mixup_y, reduction='none').sum()
-        l0_grads = torch.autograd.grad(loss, logits)[0]
-        l0_expand = torch.repeat_interleave(l0_grads, embDim, dim=1)
-        l1_grads = l0_expand * feat.repeat(1, algorithm.num_classes)
-        l0_grads = l0_grads.mean(dim=0).view(1, -1)
-        l1_grads = l1_grads.mean(dim=0).view(1, -1)
-        val_grads_per_elem = torch.cat((l0_grads.detach(), l1_grads.detach()), dim=1)
-        sum_val_grad = torch.sum(val_grads_per_elem, dim=0)
-        return {
-            'sum_val_grad': sum_val_grad,
-            'l1_grad': l1_grads,
-            'l0_grad': l0_grads,
-            'l1_out': feat.detach(),
-            'l0_out': logits.detach()
-        }
+    def eval_taylor_modular(self, grads):
+        grads_val = self.grads_val_curr
+        with torch.no_grad():
+            gains = torch.matmul(grads, grads_val)
+        return gains
 
-    def compute_example_gradient(self, algorithm):
-        from semilearn.algorithms.utils.loss import ce_loss
-        ulb_dset = algorithm.loader_dict['train_ulb']
-        l0_grads_list, l1_grads_list, idx_list = [], [], []
-        for ulb_data in ulb_dset:
-            x_concat = torch.cat([ulb_data['x_ulb_w'], ulb_data['x_ulb_s']], 0)
-            output_concat = algorithm.model(x_concat)
-            logits_w, logits_s = output_concat['logits'].chunk(2)
-            feat_w, feat_s = output_concat['feat'].chunk(2)
-            conf_w = torch.softmax(logits_w, 1)
-            pseudo_conf, pseudo_label = conf_w.max(1)
-            ulb_loss = ce_loss(logits_s, pseudo_label, reduction='none').sum()
-            embDim = feat_s.shape[1]
-            l0_grads = torch.autograd.grad(ulb_loss, logits_s)[0]
-            l0_expand = torch.repeat_interleave(l0_grads, embDim, dim=1)
-            l1_grads = l0_expand * feat_s.repeat(1, algorithm.num_classes)
-            l0_grads = l0_grads.mean(dim=0).view(1, -1)
-            l1_grads = l1_grads.mean(dim=0).view(1, -1)
-            idx_list.append(ulb_data['idx_ulb'])
-            l0_grads_list.append(l0_grads.detach())
-            l1_grads_list.append(l1_grads.detach())
-
-        l0_grads, l1_grads = torch.cat(l0_grads_list, 0), torch.cat(l1_grads_list, 0)
-        return (torch.cat(idx_list), torch.cat([l0_grads, l1_grads], 1))
+    def _update_gradients_subset(self, grads_X, element):
+        grads_X += self.grads_per_elem[element].sum(dim=0)
 
     def predict(self, algorithm):
-        idxs, per_batch_grads = self.compute_example_gradient(algorithm)
-        sum_val_grads = self.compute_val_gradient(algorithm)['sum_val_grad']
-        return {
-            'indices': idxs,
-            'per_batch_grads': per_batch_grads,
-            'sum_val_grads': sum_val_grads
-        }
+        val_grad_map = self.compute_val_gradient(algorithm)
+        l0_grads, l1_grads = val_grad_map['l0_grads'], val_grad_map['l1_grads']
+        concat_grads = torch.cat((l0_grads.detach(), l1_grads.detach()), dim=1)
+        grads_val_curr = torch.mean(concat_grads, dim=0)
+        init_out, init_l1 = val_grad_map['l0_out'], val_grad_map['l1_out']
+        per_example_grad_map = self.compute_example_gradient(algorithm)
+
+        print('in')
+
+    def greedy(self, budget):
+        greedySet = list()
+        N = self.grads_per_elem.shape[0]
+        remainSet = list(range(N))
+        # t_ng_start = time.time()  # naive greedy start time
+        numSelected = 0
+        subset_size = int((len(self.grads_per_elem) / budget) * math.log(100))
+        while (numSelected < budget):
+            # Try Using a List comprehension here!
+            subset_selected = random.sample(remainSet, k=subset_size)
+            rem_grads = self.grads_per_elem[subset_selected]
+            gains = self.eval_taylor_modular(rem_grads)
+            # Update the greedy set and remaining set
+            _, indices = torch.sort(gains.view(-1), descending=True)
+            bestId = [subset_selected[indices[0].item()]]
+            greedySet.append(bestId[0])
+            remainSet.remove(bestId[0])
+            numSelected += 1
+            # Update debug in grads_currX using element=bestId
+            if numSelected > 1:
+                self._update_gradients_subset(grads_curr, bestId)
+            else:  # If 1st selection, then just set it to bestId grads
+                grads_curr = self.grads_per_elem[bestId].view(1, -1)  # Making it a list so that is mutable!
+            # Update the grads_val_current using current greedySet grads
+            self._update_grads_val(grads_curr)
+        # self.logger.debug("RETRIEVE's Stochastic Greedy selection time: %f", time.time() - t_ng_start)
+
+        return list(greedySet), [1] * budget
 
     def apply_prune(self, algorithm, num_keep, predictions):
         idxs, gammas = [], []

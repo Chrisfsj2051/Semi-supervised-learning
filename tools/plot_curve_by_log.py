@@ -32,6 +32,15 @@ def main():
             continue
         x = [item['iteration'] for item in logs]
         y = [item[args.metric] for item in logs]
+        tmp_x, tmp_y = [], []
+        prev_max_iter = 1e9
+        for i in reversed(range(len(x))):
+            if x[i] < prev_max_iter:
+                prev_max_iter = x[i]
+                tmp_x.append(x[i])
+                tmp_y.append(y[i])
+        x = list(reversed(tmp_x))
+        y = list(reversed(tmp_y))
         plt.plot(x, y, label=log)
     plt.legend()
     plt.xlabel('Iterations')

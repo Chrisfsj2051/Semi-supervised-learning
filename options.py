@@ -48,7 +48,9 @@ def get_config():
     '''
     parser.add_argument('--datadiet_interval', type=int, default=2 ** 30)
     parser.add_argument('--datadiet_keep_num', type=int, default=2 ** 30)
-    parser.add_argument('--datadiet_method', type=str, default=None)
+    parser.add_argument('--datadiet_method', type=str, default=None,
+                        choices=[None, 'influence', 'random', 'el2n',
+                                 'gradmatch', 'retrieve'])
     parser.add_argument('--datadiet_adjust_lr_decay', type=bool, default=False)
     parser.add_argument('--datadiet_influence_group_size', default=16, type=int)
     '''

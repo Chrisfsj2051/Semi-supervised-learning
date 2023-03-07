@@ -65,7 +65,7 @@ class FlexMatchThresholdingHook(MaskingHook):
         mask = mask.to(max_probs.dtype)
 
         # update
-        if idx_ulb[select == 1].nelement() != 0:
+        if (idx_ulb is not None) and (idx_ulb[select == 1].nelement() != 0):
             self.selected_label[idx_ulb[select == 1]] = max_idx[select == 1]
         self.update()
 
