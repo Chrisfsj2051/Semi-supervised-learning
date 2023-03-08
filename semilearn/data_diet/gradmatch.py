@@ -114,17 +114,18 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
             'sum_val_grad': sum_val_grad,
             'l1_grads': l1_grads,
             'l0_grads': l0_grads,
-            'l1_out': feat.detach(),
-            'l0_out': logits.detach()
+            'l1_out_with_graph': feat,
+            'l0_out_with_graph': logits,
+            'target': mixup_y.detach()
         }
 
     def compute_example_gradient(self, algorithm):
         from semilearn.algorithms.utils.loss import ce_loss
         algorithm.model.zero_grad()
-        ulb_dset = algorithm.loader_dict['train_ulb']
+        ulb_loader = algorithm.loader_dict['train_ulb']
         l0_grads_list, l1_grads_list, idx_list = [], [], []
         mask_list, pseudo_label_list = [], []
-        for ulb_data in ulb_dset:
+        for ulb_data in ulb_loader:
             x_concat = torch.cat([ulb_data['x_ulb_w'], ulb_data['x_ulb_s']], 0)
             output_concat = algorithm.model(x_concat)
             logits_w, logits_s = output_concat['logits'].chunk(2)

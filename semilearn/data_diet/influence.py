@@ -30,8 +30,7 @@ class DataDietInfluenceHook(DataDietBaseHook):
         # 0. set init status
         model_params = algorithm.model.module.get_influence_function_params()
         lb_dset = algorithm.dataset_dict['train_lb']
-        ulb_dset = algorithm.loader_dict['train_ulb']
-        threshold = algorithm.call_hook("get_threshold", "MaskingHook")
+        ulb_loader = algorithm.loader_dict['train_ulb']
         training = algorithm.model.training
         algorithm.model.zero_grad()
         # algorithm.model.eval()
@@ -47,8 +46,9 @@ class DataDietInfluenceHook(DataDietBaseHook):
         # 2. Hessian (Identity)
 
         # 3. per example grad
+        group_num = algorithm.args.datadiet_influence_group_size
         idx_list, scores_list = [], []
-        for ulb_data in ulb_dset:
+        for ulb_data in ulb_loader:
             idx = ulb_data['idx_ulb']
             x_concat = torch.cat([ulb_data['x_ulb_w'], ulb_data['x_ulb_s']], 0)
             output_concat = algorithm.model(x_concat)
@@ -56,23 +56,19 @@ class DataDietInfluenceHook(DataDietBaseHook):
             conf_w = torch.softmax(logits_w, 1)
             pseudo_conf, pseudo_label = conf_w.max(1)
             # 1: selected; 0: ignored
-            pseudo_mask = (pseudo_conf > threshold[pseudo_label]).detach()
-            # LRU????????
+            pseudo_mask = algorithm.call_hook(
+                "masking", "MaskingHook", logits_x_ulb=logits_w, idx_ulb=None).bool()
             ulb_loss = ce_loss(logits_s, pseudo_label, reduction='none')
-
-            group_num = 16
-            if algorithm.args.__contains__('datadiet_influence_group_size'):
-                group_num = algorithm.args.datadiet_influence_group_size
 
             for (idx_group, loss_group, mask_group) in zip(
                     idx.chunk(group_num), ulb_loss.chunk(group_num),
                     pseudo_mask.chunk(group_num)):
-                score_group = torch.full(mask_group.shape, -1e5)
+                score_group = torch.randn(mask_group.shape) - 1e4
                 if mask_group.sum() > 0:
                     loss_group = loss_group[mask_group].mean()
                     example_grads = torch.autograd.grad(loss_group, model_params, retain_graph=True)
                     example_grads = torch.cat([x.flatten() for x in example_grads])
-                    score_group[mask_group] = -(example_grads * val_grads).mean()
+                    score_group[mask_group] = -(example_grads * val_grads).mean().detach()
                 idx_list.append(idx_group)
                 scores_list.append(score_group)
 
