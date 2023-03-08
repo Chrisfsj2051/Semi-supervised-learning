@@ -35,7 +35,7 @@ data_dir: ./data
 dataset: class_mismatch_cifar10
 train_sampler: RandomSampler
 num_classes: 4
-num_workers: 1
+num_workers: 2
 seed: 0
 world_size: 1
 rank: 0

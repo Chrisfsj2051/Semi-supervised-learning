@@ -46,7 +46,7 @@ data_dir: ./data
 dataset: cifar100
 train_sampler: RandomSampler
 num_classes: 100
-num_workers: 1
+num_workers: 2
 seed: 0
 world_size: 1
 rank: 0
