@@ -1,5 +1,5 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4,5,6,7"
+os.environ['CUDA_VISIBLE_DEVICES'] = "4,5,6,7"
 
 import hfai_env
 hfai_env.set_env('ssl')

@@ -47,6 +47,8 @@ def OrthogonalMP_REG_Parallel_V1(A, b, tol=1E-4, nnz=None, positive=False, lam=1
             A_i = A[:, index].view(1, -1)
         else:
             # print(indices)
+            # if i == 1:
+            #     print('???')
             A_i = torch.cat((A_i, A[:, index].view(1, -1)), dim=0)  # np.vstack([A_i, A[:,index]])
             temp = torch.matmul(A_i, torch.transpose(A_i, 0, 1)) + lam * torch.eye(A_i.shape[0], device=device)
             x_i, _, _, _ = torch.linalg.lstsq(temp, torch.matmul(A_i, b).view(-1, 1))
@@ -107,7 +109,11 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
         l1_grads = l0_expand * feat.repeat(1, algorithm.num_classes)
         l0_grads = l0_grads.mean(dim=0).view(1, -1)
         l1_grads = l1_grads.mean(dim=0).view(1, -1)
-        val_grads_per_elem = torch.cat((l0_grads.detach(), l1_grads.detach()), dim=1)
+        assert algorithm.args.datadiet_grad_params in ['linear', 'linear_backbone']
+        if algorithm.args.datadiet_grad_params == 'linear':
+            val_grads_per_elem = l0_grads.detach()
+        else:
+            val_grads_per_elem = torch.cat((l0_grads.detach(), l1_grads.detach()), dim=1)
         sum_val_grad = torch.sum(val_grads_per_elem, dim=0)
         algorithm.model.zero_grad()
         return {
@@ -148,9 +154,14 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
 
         l0_grads, l1_grads = torch.cat(l0_grads_list, 0), torch.cat(l1_grads_list, 0)
         algorithm.model.zero_grad()
+        assert algorithm.args.datadiet_grad_params in ['linear', 'linear_backbone']
+        if algorithm.args.datadiet_grad_params == 'linear':
+            per_batch_grads = l0_grads
+        else:
+            per_batch_grads = torch.cat([l0_grads, l1_grads], 1)
         return {
             'indices': torch.cat(idx_list),
-            'per_batch_grads': torch.cat([l0_grads, l1_grads], 1),
+            'per_batch_grads': per_batch_grads,
             'pseudo_labels': torch.cat(pseudo_label_list, 0),
             'masks': torch.cat(mask_list, 0)
         }

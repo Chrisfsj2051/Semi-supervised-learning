@@ -28,12 +28,13 @@ class DataDietInfluenceHook(DataDietBaseHook):
     def predict(self, algorithm):
         from semilearn.algorithms.utils.loss import ce_loss
         # 0. set init status
-        model_params = algorithm.model.module.get_influence_function_params()
+        model_params = algorithm.model.module.get_influence_function_params(
+            algorithm.args.datadiet_grad_params)
         lb_dset = algorithm.dataset_dict['train_lb']
         ulb_loader = algorithm.loader_dict['train_ulb']
         training = algorithm.model.training
-        algorithm.model.zero_grad()
-        # algorithm.model.eval()
+        # algorithm.model.zero_grad()
+        algorithm.model.eval()
         # 1. grad_val
         # TODO: EMA MC DROPOUT
         val_size = algorithm.args.batch_size * algorithm.args.uratio
@@ -48,7 +49,14 @@ class DataDietInfluenceHook(DataDietBaseHook):
         # 3. per example grad
         group_num = algorithm.args.datadiet_influence_group_size
         idx_list, scores_list = [], []
+        # import time
+        # tmp, tt = 0, time.time()
         for ulb_data in ulb_loader:
+            # print(tmp, time.time() - tt)
+            # tmp += 1
+            # tt = time.time()
+            # if tmp == 100:
+            #     break
             idx = ulb_data['idx_ulb']
             x_concat = torch.cat([ulb_data['x_ulb_w'], ulb_data['x_ulb_s']], 0)
             output_concat = algorithm.model(x_concat)
@@ -72,8 +80,8 @@ class DataDietInfluenceHook(DataDietBaseHook):
                 idx_list.append(idx_group)
                 scores_list.append(score_group)
 
-        algorithm.model.zero_grad()
-        # algorithm.model.train(mode=training)
+        # algorithm.model.zero_grad()
+        algorithm.model.train(mode=training)
         results = {
             'indices': torch.cat(idx_list),
             'scores': torch.cat(scores_list)

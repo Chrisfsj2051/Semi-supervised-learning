@@ -27,7 +27,11 @@ class DataDietRetrieveHook(DataDietGradMatchHook):
         if first_init:
             val_grad_map = self.compute_val_gradient(algorithm)
             l0_grads, l1_grads = val_grad_map['l0_grads'], val_grad_map['l1_grads']
-            concat_grads = torch.cat((l0_grads.detach(), l1_grads.detach()), dim=1)
+            assert algorithm.args.datadiet_grad_params in ['linear', 'linear_backbone']
+            if algorithm.args.datadiet_grad_params == 'linear':
+                concat_grads = l0_grads.detach()
+            else:
+                concat_grads = torch.cat((l0_grads.detach(), l1_grads.detach()), dim=1)
             self.grads_val_curr = torch.mean(concat_grads, dim=0).view(-1, 1)
             self.init_out = val_grad_map['l0_out_with_graph']
             self.init_l1 = val_grad_map['l1_out_with_graph']
@@ -36,18 +40,24 @@ class DataDietRetrieveHook(DataDietGradMatchHook):
             out_vec = self.init_out - (
                     self.eta *
                     grads_currX[0][0:algorithm.num_classes].view(1, -1).expand(self.init_out.shape[0], -1))
-            out_vec = out_vec - (
-                    self.eta *
-                    torch.matmul(
-                        self.init_l1,
-                        grads_currX[0][algorithm.num_classes:].view(algorithm.num_classes, -1).transpose(0, 1)
-                    )
-            )
+            if algorithm.args.datadiet_grad_params == 'linear_backbone':
+                out_vec = out_vec - (
+                        self.eta *
+                        torch.matmul(
+                            self.init_l1,
+                            grads_currX[0][algorithm.num_classes:].view(
+                                algorithm.num_classes, -1).transpose(0, 1)
+                        )
+                )
             loss = ce_loss(out_vec, self.y_val).sum()
             l0_grads = torch.autograd.grad(loss, out_vec)[0]
             l0_expand = torch.repeat_interleave(l0_grads, self.init_l1.shape[1], dim=1)
             l1_grads = l0_expand * self.init_l1.repeat(1, algorithm.num_classes)
-            self.grads_val_curr = torch.mean(torch.cat((l0_grads, l1_grads), dim=1), dim=0).view(-1, 1)
+            if algorithm.args.datadiet_grad_params == 'linear':
+                grads_val_curr_tmp = l0_grads
+            else:
+                grads_val_curr_tmp = torch.cat([l0_grads, l1_grads], 1)
+            self.grads_val_curr = torch.mean(grads_val_curr_tmp, dim=0).view(-1, 1)
 
     def predict(self, algorithm):
         self.grads_per_elem = self.compute_example_gradient(algorithm)['per_batch_grads']

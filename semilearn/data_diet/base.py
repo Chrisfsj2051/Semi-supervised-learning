@@ -18,12 +18,18 @@ class DataDietBaseHook(Hook):
         return 1.0
 
     def apply_prune(self, algorithm, num_keep, predictions):
+        # print('in apply prune')
         indices = predictions['indices']
         scores = predictions['scores']
+        # print('in apply prune 1')
         sorted_indices = torch.argsort(scores, descending=True)
+        # print('in apply prune 2')
         keep_indices = indices[sorted_indices[:num_keep]].cpu().tolist()
+        # print('in apply prune 3')
         random.shuffle(keep_indices)
         algorithm.loader_dict['train_ulb'].sampler.set_pruned_indices(keep_indices)
+        # print(num_keep, len(algorithm.loader_dict['train_ulb']))
+        # print('out apply prune')
 
     def reset_status(self, algorithm):
         algorithm.loader_dict['train_ulb'].sampler.set_pruned_indices(None)
