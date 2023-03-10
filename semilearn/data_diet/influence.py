@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-
+import functorch
 from .base import DataDietBaseHook
 
 
@@ -68,17 +68,17 @@ class DataDietInfluenceHook(DataDietBaseHook):
                 "masking", "MaskingHook", logits_x_ulb=logits_w, idx_ulb=None).bool()
             ulb_loss = ce_loss(logits_s, pseudo_label, reduction='none')
 
-            for (idx_group, loss_group, mask_group) in zip(
-                    idx.chunk(group_num), ulb_loss.chunk(group_num),
-                    pseudo_mask.chunk(group_num)):
-                score_group = torch.randn(mask_group.shape) - 1e4
-                if mask_group.sum() > 0:
-                    loss_group = loss_group[mask_group].mean()
-                    example_grads = torch.autograd.grad(loss_group, model_params, retain_graph=True)
-                    example_grads = torch.cat([x.flatten() for x in example_grads])
-                    score_group[mask_group] = -(example_grads * val_grads).mean().detach()
-                idx_list.append(idx_group)
-                scores_list.append(score_group)
+            def single_example_grad(v):
+                return torch.autograd.grad(ulb_loss, model_params, v)
+
+            batch_score = (torch.randn(ulb_loss.shape[0]) - 1e4).to(ulb_loss.device)
+            I_N = torch.eye(ulb_loss.shape[0]).to(ulb_loss.device)
+            batch_grads = functorch.vmap(single_example_grad)(I_N)
+            batch_grads = [x.flatten(start_dim=1) for x in batch_grads]
+            batch_grads = torch.cat(batch_grads, 1)
+            batch_score[pseudo_mask] = -(batch_grads[pseudo_mask] * val_grads).mean(1).detach()
+            idx_list.append(idx)
+            scores_list.append(batch_score)
 
         # algorithm.model.zero_grad()
         algorithm.model.train(mode=training)
