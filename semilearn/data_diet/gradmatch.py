@@ -195,10 +195,18 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
         if diff < 0:
             idxs, gammas = idxs[:diff], gammas[:diff]
         else:
-            remain_list = set(np.arange(len(algorithm.dataset_dict['train_ulb'])))
-            remain_list = list(remain_list.difference(set(idxs)))
-            random.shuffle(remain_list)
-            # remain_list = np.arange(len(algorithm.dataset_dict['train_ulb']))
+            if algorithm.args.datadiet_exp_version == 0:
+                remain_list = set(np.arange(len(algorithm.dataset_dict['train_ulb'])))
+                remain_list = list(remain_list.difference(set(idxs)))
+                random.shuffle(remain_list)
+            elif algorithm.args.datadiet_exp_version == 1:
+                remain_list = []
+                while diff != 0:
+                    remain_list.append(random.choice(idxs))
+                    diff -= 1
+            elif algorithm.args.datadiet_exp_version == 2:
+                diff = 0
+                remain_list = []
             idxs.extend(remain_list[:diff])
             gammas.extend([1 for _ in range(diff)])
 

@@ -52,6 +52,7 @@ def get_config():
                         choices=[None, 'influence', 'random', 'el2n',
                                  'gradmatch', 'retrieve'])
     parser.add_argument('--datadiet_adjust_lr_decay', type=bool, default=False)
+    parser.add_argument('--datadiet_exp_version', default=0, type=int)
     parser.add_argument('--datadiet_influence_group_size', default=4, type=int)
     parser.add_argument('--datadiet_grad_params', default='backbone', type=str,
                         choices=['backbone', 'linear', 'linear_backbone'])
