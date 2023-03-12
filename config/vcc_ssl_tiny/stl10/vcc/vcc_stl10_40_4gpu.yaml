@@ -42,7 +42,7 @@ data_dir: ./data
 dataset: stl10
 train_sampler: RandomSampler
 num_classes: 10
-num_workers: 2
+num_workers: 1
 seed: 0
 world_size: 1
 rank: 0
