@@ -139,7 +139,10 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
             conf_w = torch.softmax(logits_w, 1)
             pseudo_conf, pseudo_label = conf_w.max(1)
             mask = algorithm.call_hook("masking", "MaskingHook", logits_x_ulb=logits_w, idx_ulb=None)
-            ulb_loss = (ce_loss(logits_s, pseudo_label, reduction='none') * mask).sum()
+            if algorithm.args.datadiet_exp_version == 100:
+                ulb_loss = (ce_loss(logits_s, pseudo_label, reduction='none')).sum()
+            else:
+                ulb_loss = (ce_loss(logits_s, pseudo_label, reduction='none') * mask).sum()
             embDim = feat_s.shape[1]
             l0_grads = torch.autograd.grad(ulb_loss, logits_s)[0]
             l0_expand = torch.repeat_interleave(l0_grads, embDim, dim=1)

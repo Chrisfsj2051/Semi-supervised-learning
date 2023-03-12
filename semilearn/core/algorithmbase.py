@@ -13,7 +13,7 @@ import torch.nn.functional as F
 from torch.cuda.amp import autocast, GradScaler
 
 from semilearn.core.hooks import Hook, get_priority, CheckpointHook, TimerHook, LoggingHook, DistSamplerSeedHook, ParamUpdateHook, EvaluationHook, EMAHook
-from semilearn.core.hooks import DataDietRandomHook, DataDietInfluenceHook, DataDietEL2NHook, DataDietGradMatchHook, DataDietRetrieveHook
+from semilearn.core.hooks import DataDietRandomHook, DataDietInfluenceHook, DataDietEL2NHook, DataDietGradMatchHook, DataDietRetrieveHook, DataDietEarlyStopHook
 from semilearn.core.utils import get_dataset, get_data_loader, get_optimizer, get_cosine_schedule_with_warmup, Bn_Controller
 from semilearn.core.utils import maximum_calibration_error, expected_calibration_error, average_calibration_error, adaptive_expected_calibration_error, classwise_expected_calibration_error
 
@@ -160,7 +160,7 @@ class AlgorithmBase:
     def set_optimizer(self):
         self.print_fn("Create optimizer and scheduler")
         train_iter = self.num_train_iter
-        if self.args.datadiet_method:
+        if self.args.datadiet_method and self.args.datadiet_method != 'earlystop':
             self.print_fn("Adjust cosine learning rate according to data diet ratio")
             train_iter = self.args.datadiet_keep_num / len(self.dataset_dict['train_ulb']) * train_iter
         optimizer = get_optimizer(self.model, self.args.optim, self.args.lr, self.args.momentum, self.args.weight_decay, self.args.layer_decay)
@@ -206,6 +206,8 @@ class AlgorithmBase:
             self.register_hook(DataDietGradMatchHook(), "DataDietHook")
         elif self.args.datadiet_method == 'retrieve':
             self.register_hook(DataDietRetrieveHook(), "DataDietHook")
+        elif self.args.datadiet_method == 'earlystop':
+            self.register_hook(DataDietEarlyStopHook(), "DataDietHook")
 
     def process_batch(self, **kwargs):
         """
