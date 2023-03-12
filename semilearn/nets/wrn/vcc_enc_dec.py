@@ -23,6 +23,8 @@ class VCCBaseEncoderDecoder(nn.Module):
         results = []
         for i in range(len(dims) - 1):
             results.append(nn.Linear(dims[i], dims[i + 1]))
+            if with_bn:
+                results.append(nn.BatchNorm1d(dims[i + 1]))
             results.append(activation(inplace=True))
         return results
 

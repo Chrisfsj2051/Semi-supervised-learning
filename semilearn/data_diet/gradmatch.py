@@ -201,12 +201,13 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
                 random.shuffle(remain_list)
             elif algorithm.args.datadiet_exp_version == 1:
                 remain_list = []
+                if idxs == []:
+                    idxs = [0]
                 while diff != 0:
                     remain_list.append(random.choice(idxs))
                     diff -= 1
             elif algorithm.args.datadiet_exp_version == 2:
-                diff = 0
-                remain_list = []
+                remain_list = idxs
             idxs.extend(remain_list[:diff])
             gammas.extend([1 for _ in range(diff)])
 

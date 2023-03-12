@@ -1,7 +1,7 @@
 algorithm: flexmatch
 save_dir: ./saved_models/data_diet/cifar10/influence/
-save_name: flexmatch_cifar10_250_keep10000_4gpu_group4
-datadiet_influence_group_size: 4
+save_name: flexmatch_cifar10_250_keep10000_4gpu_group448
+datadiet_influence_group_size: 448
 resume: False
 datadiet_interval: 40
 datadiet_keep_num: 10000
