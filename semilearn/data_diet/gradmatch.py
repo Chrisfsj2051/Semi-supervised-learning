@@ -46,23 +46,17 @@ def OrthogonalMP_REG_Parallel_V1(A, b, tol=1E-4, nnz=None, positive=False, lam=1
             x_i = projections[index] / torch.dot(A_i, A_i).view(-1)  # A_i.T.dot(A_i)
             A_i = A[:, index].view(1, -1)
         else:
-            # print(indices)
-            # if i == 1:
-            #     print('???')
-            A_i = torch.cat((A_i, A[:, index].view(1, -1)), dim=0)  # np.vstack([A_i, A[:,index]])
+            A_i = torch.cat((A_i, A[:, index].view(1, -1)), dim=0)
             temp = torch.matmul(A_i, torch.transpose(A_i, 0, 1)) + lam * torch.eye(A_i.shape[0], device=device)
             x_i, _, _, _ = torch.linalg.lstsq(temp, torch.matmul(A_i, b).view(-1, 1))
-            # print(x_i.shape)
             if positive:
                 while min(x_i) < 0.0:
-                    # print("Negative",b.shape,torch.transpose(A_i, 0, 1).shape,x_i.shape)
                     argmin = torch.argmin(x_i)
                     indices = indices[:argmin] + indices[argmin + 1:]
-                    A_i = torch.cat((A_i[:argmin], A_i[argmin + 1:]),
-                                    dim=0)  # np.vstack([A_i[:argmin], A_i[argmin+1:]])
+                    A_i = torch.cat((A_i[:argmin], A_i[argmin + 1:]), dim=0)
                     temp = torch.matmul(A_i, torch.transpose(A_i, 0, 1)) + lam * torch.eye(A_i.shape[0], device=device)
                     x_i, _, _, _ = torch.linalg.lstsq(temp, torch.matmul(A_i, b).view(-1, 1))
-        resid = b - torch.matmul(torch.transpose(A_i, 0, 1), x_i).view(-1)  # A_i.T.dot(x_i)
+        resid = b - torch.matmul(torch.transpose(A_i, 0, 1), x_i).view(-1)
     x_i = x_i.view(-1)
     for i, index in enumerate(indices):
         try:
@@ -80,6 +74,8 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
         self.eps = 1e-100
 
     def get_batch_weight(self, algorithm, idx_ulb):
+        if algorithm.args.datadiet_exp_version == 5:
+            return idx_ulb.new_tensor([1.0 for _ in idx_ulb], dtype=torch.float)
         try:
             weights = [max(self.id2weight[int(i)], 0) for i in idx_ulb]
             # weights = [max(self.id2weight[int(i)], 0) for i in idx_ulb]
@@ -127,7 +123,10 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
 
     def compute_example_gradient(self, algorithm):
         from semilearn.algorithms.utils.loss import ce_loss
-        algorithm.model.zero_grad()
+        if algorithm.args.datadiet_exp_version == 200:
+            algorithm.model.eval()
+        else:
+            algorithm.model.zero_grad()
         ulb_loader = algorithm.loader_dict['train_ulb']
         l0_grads_list, l1_grads_list, idx_list = [], [], []
         mask_list, pseudo_label_list = [], []
@@ -156,12 +155,16 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
             l1_grads_list.append(l1_grads.detach())
 
         l0_grads, l1_grads = torch.cat(l0_grads_list, 0), torch.cat(l1_grads_list, 0)
-        algorithm.model.zero_grad()
+
         assert algorithm.args.datadiet_grad_params in ['linear', 'linear_backbone']
         if algorithm.args.datadiet_grad_params == 'linear':
             per_batch_grads = l0_grads
         else:
             per_batch_grads = torch.cat([l0_grads, l1_grads], 1)
+        if algorithm.args.datadiet_exp_version == 200:
+            algorithm.model.train(mode=True)
+        else:
+            algorithm.model.zero_grad()
         return {
             'indices': torch.cat(idx_list),
             'per_batch_grads': per_batch_grads,
@@ -197,20 +200,18 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
         diff = num_keep - len(idxs)
         if diff < 0:
             idxs, gammas = idxs[:diff], gammas[:diff]
-        else:
-            if algorithm.args.datadiet_exp_version == 0:
+        elif algorithm.args.datadiet_exp_version != 1:
+            if algorithm.args.datadiet_exp_version == 1:
+                remain_list = idxs * 10
+                remain_list += list(set(np.arange(len(algorithm.dataset_dict['train_ulb']))))
+            elif algorithm.args.datadiet_exp_version == 2:
+                remain_list = set(np.arange(len(algorithm.dataset_dict['train_ulb'])))
+                remain_list = list(remain_list.difference(set(idxs)))
+            else:
                 remain_list = set(np.arange(len(algorithm.dataset_dict['train_ulb'])))
                 remain_list = list(remain_list.difference(set(idxs)))
                 random.shuffle(remain_list)
-            elif algorithm.args.datadiet_exp_version == 1:
-                remain_list = []
-                if idxs == []:
-                    idxs = [0]
-                while diff != 0:
-                    remain_list.append(random.choice(idxs))
-                    diff -= 1
-            elif algorithm.args.datadiet_exp_version == 2:
-                remain_list = idxs
+
             idxs.extend(remain_list[:diff])
             gammas.extend([1 for _ in range(diff)])
 

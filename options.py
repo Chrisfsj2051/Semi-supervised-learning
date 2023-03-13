@@ -53,7 +53,7 @@ def get_config():
                                  'gradmatch', 'retrieve'])
     parser.add_argument('--datadiet_adjust_lr_decay', type=bool, default=False)
     parser.add_argument('--datadiet_exp_version', default=0, type=int)
-    parser.add_argument('--datadiet_influence_group_size', default=112, type=int)
+    parser.add_argument('--datadiet_influence_group_size', default=448, type=int)
     parser.add_argument('--datadiet_influence_calculate_num', default=1, type=int)
     parser.add_argument('--datadiet_grad_params', default='backbone', type=str,
                         choices=['backbone', 'linear', 'linear_backbone'])

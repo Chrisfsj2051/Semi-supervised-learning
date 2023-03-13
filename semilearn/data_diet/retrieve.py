@@ -80,18 +80,18 @@ class DataDietRetrieveHook(DataDietGradMatchHook):
             gains = self.eval_taylor_modular(rem_grads)
             # Update the greedy set and remaining set
             _, indices = torch.sort(gains.view(-1), descending=True)
-            # if len(indices) == 0:
-            #     print(f'indices={indices}, remainSetSize={len(remainSet)},'
-            #           f'subsetSize={subset_size}, lenGardNorm={len(self.grads_per_elem)}')
             bestId = [subset_selected[indices[0].item()]]
             greedySet.append(bestId[0])
             remainSet.remove(bestId[0])
             numSelected += 1
-            # Update debug in grads_currX using element=bestId
-            if numSelected > 1:
-                self._update_gradients_subset(grads_curr, bestId)
-            else:
+            if algorithm.args.datadiet_exp_version == 5:
                 grads_curr = self.grads_per_elem[bestId].view(1, -1)
+            else:
+                # Update debug in grads_currX using element=bestId
+                if numSelected > 1:
+                    self._update_gradients_subset(grads_curr, bestId)
+                else:
+                    grads_curr = self.grads_per_elem[bestId].view(1, -1)
             self._update_grads_val(algorithm, grads_curr)
         # self.logger.debug("RETRIEVE's Stochastic Greedy selection time: %f", time.time() - t_ng_start)
 

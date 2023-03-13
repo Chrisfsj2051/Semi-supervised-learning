@@ -1,14 +1,22 @@
 algorithm: vcc
 save_dir: ./saved_models/vcc_ssl_tiny/cifar100/vcc
-c
+save_name: vcc_cifar100_2500_4gpu_consis_bn_recon2.0_zdim64
+vcc_uncertainty_method: consistency
+vcc_enc_norm: bn
+vcc_dec_norm: bn
+vcc_encoder_dims: [512, 256]
+vcc_decoder_dims: [512, 256]
+vcc_mc_sampling_times: 20
+vcc_mc_keep_p: 0.7
+vcc_disable_variance: False
 resume: False
-load_path: saved_models/vcc_ssl_tiny/cifar100/vcc/vcc_cifar100_400_4gpu_consis/model_vcc_training_init.pth
+load_path: saved_models/vcc_ssl_tiny/cifar100/vcc/vcc_cifar100_2500_4gpu_consis_bn/model_vcc_training_init.pth
 vcc_training_warmup: 50000
 vcc_selection_warmup: 100000
 vcc_lab_loss_weight: 0.0
-vcc_unlab_recon_loss_weight: 1.0
-vcc_unlab_kl_loss_weight: 1.0
-vcc_z_dim: 128
+vcc_unlab_recon_loss_weight: 2.0
+vcc_unlab_kl_loss_weight: 2.0
+vcc_z_dim: 64
 vcc_p_cutoff: 0.95
 overwrite: False
 use_tensorboard: True
@@ -16,7 +24,7 @@ epoch: 1000
 num_train_iter: 300000
 save_interval: 25000
 num_eval_iter: 1000
-num_labels: 400
+num_labels: 2500
 batch_size: 64
 eval_batch_size: 256
 hard_label: True
