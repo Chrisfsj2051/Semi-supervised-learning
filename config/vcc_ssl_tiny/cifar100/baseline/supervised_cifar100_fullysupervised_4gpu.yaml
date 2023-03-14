@@ -1,5 +1,5 @@
 algorithm: supervised
-save_dir: ./saved_models/debug
+save_dir: ./saved_models/vcc_ssl_tiny/cifar100/baseline
 save_name: supervised_cifar100_fullysupervised_4gpu
 resume: False
 load_path: None

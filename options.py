@@ -57,6 +57,8 @@ def get_config():
     parser.add_argument('--datadiet_influence_calculate_num', default=1, type=int)
     parser.add_argument('--datadiet_grad_params', default='backbone', type=str,
                         choices=['backbone', 'linear', 'linear_backbone'])
+    parser.add_argument('--datadiet_gradmatch_lam', default=0.5, type=float)
+    parser.add_argument('--datadiet_retrieve_eta', default=0.03, type=float)
     '''
     Additional Dataset Args
     '''
@@ -75,6 +77,7 @@ def get_config():
     parser.add_argument('-sn', '--save_name', type=str, default='fixmatch')
     parser.add_argument('--resume', action='store_true')
     parser.add_argument('--load_path', type=str)
+    parser.add_argument('--visualize_load_path', type=str, default=None)
     parser.add_argument('-o', '--overwrite', action='store_true', default=True)
     parser.add_argument('--use_tensorboard', action='store_true',
                         help='Use tensorboard to plot and save curves, otherwise save the curves locally.')

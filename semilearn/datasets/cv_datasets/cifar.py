@@ -9,6 +9,7 @@ from .datasetbase import BasicDataset
 from semilearn.datasets.augmentation import RandAugment
 from semilearn.datasets.utils import split_ssl_data
 
+CIFAR10_CLASSES = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
 
 mean, std = {}, {}
 mean['cifar10'] = [0.485, 0.456, 0.406]
