@@ -92,6 +92,7 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
         return ind.tolist(), reg[ind].tolist()
 
     def compute_val_gradient(self, algorithm):
+        self.lam = algorithm.args.datadiet_gradmatch_lam
         from semilearn.algorithms.utils.loss import ce_loss
         if algorithm.args.datadiet_exp_version == 800:
             results = self.compute_example_gradient(algorithm)
