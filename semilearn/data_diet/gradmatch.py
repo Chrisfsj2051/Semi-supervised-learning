@@ -93,33 +93,46 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
 
     def compute_val_gradient(self, algorithm):
         from semilearn.algorithms.utils.loss import ce_loss
-        algorithm.model.zero_grad()
-        val_size = algorithm.args.batch_size * algorithm.args.uratio
-        mixup_x, mixup_y = self.mixup_sampling(algorithm, algorithm.dataset_dict['train_lb'], val_size)
-        model_output = algorithm.model(mixup_x)
-        feat, logits = model_output['feat'], model_output['logits']
-        embDim = feat.shape[1]
-        loss = ce_loss(logits, mixup_y, reduction='none').sum()
-        l0_grads = torch.autograd.grad(loss, logits)[0]
-        l0_expand = torch.repeat_interleave(l0_grads, embDim, dim=1)
-        l1_grads = l0_expand * feat.repeat(1, algorithm.num_classes)
-        l0_grads = l0_grads.mean(dim=0).view(1, -1)
-        l1_grads = l1_grads.mean(dim=0).view(1, -1)
-        assert algorithm.args.datadiet_grad_params in ['linear', 'linear_backbone']
-        if algorithm.args.datadiet_grad_params == 'linear':
-            val_grads_per_elem = l0_grads.detach()
+        if algorithm.args.datadiet_exp_version == 800:
+            results = self.compute_example_gradient(algorithm)
+            return {
+                'sum_val_grad': results['per_batch_grads'].sum(0),
+                'l1_grads': results['l1_grads'],
+                'l0_grads': results['l0_grads'],
+                'l1_out': results['l1_out'],
+                'l0_out': results['l0_out'],
+                'target': results['pseudo_labels'],
+                'masks': results['masks']
+            }
         else:
-            val_grads_per_elem = torch.cat((l0_grads.detach(), l1_grads.detach()), dim=1)
-        sum_val_grad = torch.sum(val_grads_per_elem, dim=0)
-        algorithm.model.zero_grad()
-        return {
-            'sum_val_grad': sum_val_grad,
-            'l1_grads': l1_grads,
-            'l0_grads': l0_grads,
-            'l1_out_with_graph': feat,
-            'l0_out_with_graph': logits,
-            'target': mixup_y.detach()
-        }
+            algorithm.model.zero_grad()
+            val_size = algorithm.args.batch_size * algorithm.args.uratio
+            mixup_x, mixup_y = self.mixup_sampling(algorithm, algorithm.dataset_dict['train_lb'], val_size)
+            model_output = algorithm.model(mixup_x)
+            feat, logits = model_output['feat'], model_output['logits']
+            embDim = feat.shape[1]
+            loss = ce_loss(logits, mixup_y, reduction='none').sum()
+            l0_grads = torch.autograd.grad(loss, logits)[0]
+            l0_expand = torch.repeat_interleave(l0_grads, embDim, dim=1)
+            l1_grads = l0_expand * feat.repeat(1, algorithm.num_classes)
+            l0_grads = l0_grads.mean(dim=0).view(1, -1)
+            l1_grads = l1_grads.mean(dim=0).view(1, -1)
+            assert algorithm.args.datadiet_grad_params in ['linear', 'linear_backbone']
+            if algorithm.args.datadiet_grad_params == 'linear':
+                val_grads_per_elem = l0_grads.detach()
+            else:
+                val_grads_per_elem = torch.cat((l0_grads.detach(), l1_grads.detach()), dim=1)
+            sum_val_grad = torch.sum(val_grads_per_elem, dim=0)
+            algorithm.model.zero_grad()
+            return {
+                'sum_val_grad': sum_val_grad,
+                'l1_grads': l1_grads,
+                'l0_grads': l0_grads,
+                'l1_out': feat.detach(),
+                'l0_out': logits.detach(),
+                'target': mixup_y.detach(),
+                'masks': sum_val_grad.new_ones(l1_grads.shape[0])
+            }
 
     def compute_example_gradient(self, algorithm):
         from semilearn.algorithms.utils.loss import ce_loss
@@ -130,6 +143,7 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
         ulb_loader = algorithm.loader_dict['train_ulb']
         l0_grads_list, l1_grads_list, idx_list = [], [], []
         mask_list, pseudo_label_list = [], []
+        feats_list, logits_list = [], []
         for ulb_data in ulb_loader:
             x_concat = torch.cat([ulb_data['x_ulb_w'], ulb_data['x_ulb_s']], 0)
             output_concat = algorithm.model(x_concat)
@@ -153,6 +167,8 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
             mask_list.append(mask.detach())
             pseudo_label_list.append(pseudo_label.detach())
             l1_grads_list.append(l1_grads.detach())
+            feats_list.append(feat_s.detach())
+            logits_list.append(logits_s.detach())
 
         l0_grads, l1_grads = torch.cat(l0_grads_list, 0), torch.cat(l1_grads_list, 0)
 
@@ -169,7 +185,11 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
             'indices': torch.cat(idx_list),
             'per_batch_grads': per_batch_grads,
             'pseudo_labels': torch.cat(pseudo_label_list, 0),
-            'masks': torch.cat(mask_list, 0)
+            'masks': torch.cat(mask_list, 0),
+            'l0_out': torch.cat(logits_list, 0),
+            'l1_out': torch.cat(feats_list, 0),
+            'l1_grads': l1_grads,
+            'l0_grads': l0_grads,
         }
 
     def predict(self, algorithm):

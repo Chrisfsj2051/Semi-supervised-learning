@@ -3,6 +3,7 @@
 # Ref: https://github.com/open-mmlab/mmcv/blob/master/mmcv/runner/hooks/checkpoint.py
 
 import os
+import joblib
 
 from .hook import Hook
 
@@ -17,6 +18,9 @@ class CheckpointHook(Hook):
 
             if (self.every_n_iters(algorithm, algorithm.num_eval_iter) or self.is_last_iter(algorithm)):
                 algorithm.save_model('latest_model.pth', save_path)
+                eval_results_path = os.path.join(save_path, 'eval_results')
+                joblib.dump(algorithm.eval_results,
+                            os.path.join(eval_results_path, f'eval_{algorithm.it + 1:010d}.pth'))
 
             if algorithm.it == algorithm.best_it:
                 algorithm.save_model('model_best.pth', save_path)

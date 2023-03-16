@@ -34,6 +34,7 @@ def main(args):
         f"# total training iter. {args.num_train_iter} is not divisible by # epochs {args.epoch}"
 
     save_path = os.path.join(args.save_dir, args.save_name)
+    eval_results_path = os.path.join(save_path, 'eval_results')
     if os.path.exists(save_path) and args.overwrite and args.resume == False:
         import shutil
         shutil.rmtree(save_path)
@@ -45,6 +46,9 @@ def main(args):
         if os.path.abspath(save_path) == os.path.abspath(args.load_path) and not args.overwrite:
             raise Exception('Saving & Loading pathes are same. \
                             If you want over-write, give --overwrite in the argument.')
+
+    if not os.path.exists(eval_results_path):
+        os.makedirs(eval_results_path)
 
     if args.seed is not None:
         warnings.warn('You have chosen to seed training. '

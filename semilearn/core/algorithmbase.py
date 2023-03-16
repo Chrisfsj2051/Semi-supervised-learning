@@ -344,6 +344,13 @@ class AlgorithmBase:
                      eval_dest+'/mce': mce, eval_dest+'/ace': ace}
         if return_logits:
             eval_dict[eval_dest+'/logits'] = y_logits
+        self.eval_results = {
+            'y_true': y_true,
+            'y_pred': y_pred,
+            'y_logits': y_logits,
+            'y_probs': y_probs,
+            'eval_dict': eval_dict
+        }
         return eval_dict
 
     def get_save_dict(self):

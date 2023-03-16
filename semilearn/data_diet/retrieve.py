@@ -33,9 +33,10 @@ class DataDietRetrieveHook(DataDietGradMatchHook):
             else:
                 concat_grads = torch.cat((l0_grads.detach(), l1_grads.detach()), dim=1)
             self.grads_val_curr = torch.mean(concat_grads, dim=0).view(-1, 1)
-            self.init_out = val_grad_map['l0_out_with_graph']
-            self.init_l1 = val_grad_map['l1_out_with_graph']
+            self.init_out = val_grad_map['l0_out']
+            self.init_l1 = val_grad_map['l1_out']
             self.y_val = val_grad_map['target']
+            self.y_mask = val_grad_map['masks']
         elif grads_currX is not None:
             out_vec = self.init_out - (
                     self.eta *
@@ -49,8 +50,10 @@ class DataDietRetrieveHook(DataDietGradMatchHook):
                                 algorithm.num_classes, -1).transpose(0, 1)
                         )
                 )
-            loss = ce_loss(out_vec, self.y_val).sum()
-            l0_grads = torch.autograd.grad(loss, out_vec)[0]
+            out_vec_tmp = torch.clone(out_vec)
+            out_vec_tmp.requires_grad_()
+            loss = (ce_loss(out_vec_tmp, self.y_val) * self.y_mask).sum()
+            l0_grads = torch.autograd.grad(loss, out_vec_tmp)[0]
             l0_expand = torch.repeat_interleave(l0_grads, self.init_l1.shape[1], dim=1)
             l1_grads = l0_expand * self.init_l1.repeat(1, algorithm.num_classes)
             if algorithm.args.datadiet_grad_params == 'linear':
@@ -69,13 +72,12 @@ class DataDietRetrieveHook(DataDietGradMatchHook):
         greedySet = list()
         N = self.grads_per_elem.shape[0]
         remainSet = list(range(N))
-        # t_ng_start = time.time()  # naive greedy start time
         numSelected = 0
         subset_size = int((len(self.grads_per_elem) / budget_batch) * math.log(100))
         subset_size = max(subset_size, 1)
         while (numSelected < budget_batch):
             # Try Using a List comprehension here!
-            subset_selected = random.sample(remainSet, k=subset_size)
+            subset_selected = random.sample(remainSet, k=min(len(remainSet), subset_size))
             rem_grads = self.grads_per_elem[subset_selected]
             gains = self.eval_taylor_modular(rem_grads)
             # Update the greedy set and remaining set
