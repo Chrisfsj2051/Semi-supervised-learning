@@ -1,12 +1,11 @@
 algorithm: flexmatch
-save_dir: ./saved_models/data_diet/cifar10/retrieve/
-save_name: flexmatch_cifar10_250_keep10000_4gpu_exp800
-datadiet_exp_version: 800
-datadiet_grad_params: linear
+save_dir: ./saved_models/data_diet/cifar10/gradmatch/
+save_name: flexmatch_cifar10_250_keep20000_4gpu
 resume: False
+datadiet_grad_params: linear_backbone
 datadiet_interval: 40
-datadiet_keep_num: 10000
-datadiet_method: retrieve
+datadiet_keep_num: 20000
+datadiet_method: gradmatch
 load_path: None
 overwrite: False
 save_interval: 20000

@@ -1,12 +1,11 @@
 algorithm: flexmatch
-save_dir: ./saved_models/data_diet/cifar10/retrieve/
-save_name: flexmatch_cifar10_250_keep10000_4gpu_exp100
-datadiet_exp_version: 100
-datadiet_grad_params: linear
+save_dir: ./saved_models/data_diet/cifar10/gradmatch/
+save_name: flexmatch_cifar10_4000_keep30000_4gpu
 resume: False
+datadiet_grad_params: linear_backbone
 datadiet_interval: 40
-datadiet_keep_num: 10000
-datadiet_method: retrieve
+datadiet_keep_num: 30000
+datadiet_method: gradmatch
 load_path: None
 overwrite: False
 save_interval: 20000
@@ -14,7 +13,7 @@ use_tensorboard: True
 epoch: 1024
 num_train_iter: 1048576
 num_eval_iter: 1000
-num_labels: 250
+num_labels: 4000
 batch_size: 64
 eval_batch_size: 256
 hard_label: True

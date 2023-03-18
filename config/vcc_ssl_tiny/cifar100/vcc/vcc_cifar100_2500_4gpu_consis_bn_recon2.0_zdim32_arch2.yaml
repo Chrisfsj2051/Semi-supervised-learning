@@ -1,5 +1,5 @@
 algorithm: vcc
-save_dir: ./saved_models/debug
+save_dir: ./saved_models/vcc_ssl_tiny/cifar100/vcc
 save_name: vcc_cifar100_2500_4gpu_consis_bn_recon2.0_zdim32_arch2
 vcc_uncertainty_method: consistency
 vcc_enc_norm: bn
@@ -11,8 +11,8 @@ vcc_mc_keep_p: 0.7
 vcc_disable_variance: False
 resume: False
 load_path: saved_models/vcc_ssl_tiny/cifar100/vcc/vcc_cifar100_2500_4gpu_consis_bn/model_vcc_training_init.pth
-vcc_training_warmup: 50
-vcc_selection_warmup: 100
+vcc_training_warmup: 50000
+vcc_selection_warmup: 100000
 vcc_lab_loss_weight: 0.0
 vcc_unlab_recon_loss_weight: 2.0
 vcc_unlab_kl_loss_weight: 2.0

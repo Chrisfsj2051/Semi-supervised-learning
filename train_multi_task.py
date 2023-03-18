@@ -27,8 +27,13 @@ if __name__ == '__main__':
         time.sleep(5)
 
     while True:
+        finished_cnt = 0
         for i, p in enumerate(p_list):
             poll = p.poll()
             if poll is not None and poll != 0:
                 print('Restart')
+            elif poll == 0:
+                finished_cnt += 1
             time.sleep(5)
+        if finished_cnt == len(p_list):
+            break

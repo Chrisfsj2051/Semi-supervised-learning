@@ -8,7 +8,7 @@ from semilearn.data_diet.gradmatch import DataDietGradMatchHook
 class DataDietRetrieveHook(DataDietGradMatchHook):
     def __init__(self):
         super().__init__()
-        self.eta = 0.03
+        self.eta = 0.97
 
     def get_batch_weight(self, algorithm, idx_ulb):
         return 1.0
@@ -87,16 +87,12 @@ class DataDietRetrieveHook(DataDietGradMatchHook):
             greedySet.append(bestId[0])
             remainSet.remove(bestId[0])
             numSelected += 1
-            if algorithm.args.datadiet_exp_version == 5:
-                grads_curr = self.grads_per_elem[bestId].view(1, -1)
+            # Update debug in grads_currX using element=bestId
+            if numSelected > 1:
+                self._update_gradients_subset(grads_curr, bestId)
             else:
-                # Update debug in grads_currX using element=bestId
-                if numSelected > 1:
-                    self._update_gradients_subset(grads_curr, bestId)
-                else:
-                    grads_curr = self.grads_per_elem[bestId].view(1, -1)
+                grads_curr = self.grads_per_elem[bestId].view(1, -1)
             self._update_grads_val(algorithm, grads_curr)
-        # self.logger.debug("RETRIEVE's Stochastic Greedy selection time: %f", time.time() - t_ng_start)
 
         return list(greedySet)
 

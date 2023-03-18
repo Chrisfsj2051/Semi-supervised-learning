@@ -57,8 +57,6 @@ def get_config():
     parser.add_argument('--datadiet_influence_calculate_num', default=1, type=int)
     parser.add_argument('--datadiet_grad_params', default='backbone', type=str,
                         choices=['backbone', 'linear', 'linear_backbone'])
-    parser.add_argument('--datadiet_gradmatch_lam', default=0.5, type=float)
-    parser.add_argument('--datadiet_retrieve_eta', default=0.03, type=float)
     '''
     Additional Dataset Args
     '''

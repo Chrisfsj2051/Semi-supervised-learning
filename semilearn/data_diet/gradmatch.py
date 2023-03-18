@@ -70,16 +70,12 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
     def __init__(self):
         super().__init__()
         self.id2weight = {}
-        self.lam = 0.5
+        self.lam = 5.0
         self.eps = 1e-100
 
     def get_batch_weight(self, algorithm, idx_ulb):
-        if algorithm.args.datadiet_exp_version == 5:
-            return idx_ulb.new_tensor([1.0 for _ in idx_ulb], dtype=torch.float)
         try:
             weights = [max(self.id2weight[int(i)], 0) for i in idx_ulb]
-            # weights = [max(self.id2weight[int(i)], 0) for i in idx_ulb]
-            # weights = idx_ulb.new_tensor(weights, dtype=torch.float).mean()
         except Exception:
             weights = [1.0 for _ in idx_ulb]
         return idx_ulb.new_tensor(weights, dtype=torch.float)
@@ -92,55 +88,58 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
         return ind.tolist(), reg[ind].tolist()
 
     def compute_val_gradient(self, algorithm):
-        self.lam = algorithm.args.datadiet_gradmatch_lam
         from semilearn.algorithms.utils.loss import ce_loss
-        if algorithm.args.datadiet_exp_version == 800:
-            results = self.compute_example_gradient(algorithm)
-            return {
-                'sum_val_grad': results['per_batch_grads'].sum(0),
-                'l1_grads': results['l1_grads'],
-                'l0_grads': results['l0_grads'],
-                'l1_out': results['l1_out'],
-                'l0_out': results['l0_out'],
-                'target': results['pseudo_labels'],
-                'masks': results['masks']
-            }
-        else:
-            algorithm.model.zero_grad()
-            val_size = algorithm.args.batch_size * algorithm.args.uratio
-            mixup_x, mixup_y = self.mixup_sampling(algorithm, algorithm.dataset_dict['train_lb'], val_size)
-            model_output = algorithm.model(mixup_x)
-            feat, logits = model_output['feat'], model_output['logits']
+        algorithm.model.zero_grad()
+        lb_loader = algorithm.loader_dict['train_lb']
+        l0_grads_list, l1_grads_list, idx_list = [], [], []
+        mask_list, pseudo_label_list = [], []
+        feats_list, logits_list = [], []
+        for lb_data in lb_loader:
+            output = algorithm.model(lb_data['x_lb'])
+            logits = output['logits']
+            feat = output['feat']
+            conf = torch.softmax(logits, 1)
+            pseudo_conf, pseudo_label = conf.max(1)
+            mask = algorithm.call_hook("masking", "MaskingHook", logits_x_ulb=logits, idx_ulb=None)
+            ulb_loss = (ce_loss(logits, pseudo_label, reduction='none') * mask).sum()
             embDim = feat.shape[1]
-            loss = ce_loss(logits, mixup_y, reduction='none').sum()
-            l0_grads = torch.autograd.grad(loss, logits)[0]
+            l0_grads = torch.autograd.grad(ulb_loss, logits)[0]
             l0_expand = torch.repeat_interleave(l0_grads, embDim, dim=1)
             l1_grads = l0_expand * feat.repeat(1, algorithm.num_classes)
             l0_grads = l0_grads.mean(dim=0).view(1, -1)
             l1_grads = l1_grads.mean(dim=0).view(1, -1)
-            assert algorithm.args.datadiet_grad_params in ['linear', 'linear_backbone']
-            if algorithm.args.datadiet_grad_params == 'linear':
-                val_grads_per_elem = l0_grads.detach()
-            else:
-                val_grads_per_elem = torch.cat((l0_grads.detach(), l1_grads.detach()), dim=1)
-            sum_val_grad = torch.sum(val_grads_per_elem, dim=0)
-            algorithm.model.zero_grad()
-            return {
-                'sum_val_grad': sum_val_grad,
-                'l1_grads': l1_grads,
-                'l0_grads': l0_grads,
-                'l1_out': feat.detach(),
-                'l0_out': logits.detach(),
-                'target': mixup_y.detach(),
-                'masks': sum_val_grad.new_ones(l1_grads.shape[0])
-            }
+            idx_list.append(lb_data['idx_lb'])
+            l0_grads_list.append(l0_grads.detach())
+            mask_list.append(mask.detach())
+            pseudo_label_list.append(pseudo_label.detach())
+            l1_grads_list.append(l1_grads.detach())
+            feats_list.append(feat.detach())
+            logits_list.append(logits.detach())
+
+        l0_grads, l1_grads = torch.cat(l0_grads_list, 0), torch.cat(l1_grads_list, 0)
+
+        assert algorithm.args.datadiet_grad_params in ['linear', 'linear_backbone']
+        if algorithm.args.datadiet_grad_params == 'linear':
+            per_batch_grads = l0_grads
+        else:
+            per_batch_grads = torch.cat([l0_grads, l1_grads], 1)
+        algorithm.model.zero_grad()
+        return {
+            'sum_val_grad': per_batch_grads.sum(0),
+            'indices': torch.cat(idx_list),
+            'per_batch_grads': per_batch_grads,
+            'pseudo_labels': torch.cat(pseudo_label_list, 0),
+            'target': torch.cat(pseudo_label_list, 0),
+            'masks': torch.cat(mask_list, 0),
+            'l0_out': torch.cat(logits_list, 0),
+            'l1_out': torch.cat(feats_list, 0),
+            'l1_grads': l1_grads,
+            'l0_grads': l0_grads,
+        }
 
     def compute_example_gradient(self, algorithm):
         from semilearn.algorithms.utils.loss import ce_loss
-        if algorithm.args.datadiet_exp_version == 200:
-            algorithm.model.eval()
-        else:
-            algorithm.model.zero_grad()
+        algorithm.model.zero_grad()
         ulb_loader = algorithm.loader_dict['train_ulb']
         l0_grads_list, l1_grads_list, idx_list = [], [], []
         mask_list, pseudo_label_list = [], []
@@ -178,10 +177,7 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
             per_batch_grads = l0_grads
         else:
             per_batch_grads = torch.cat([l0_grads, l1_grads], 1)
-        if algorithm.args.datadiet_exp_version == 200:
-            algorithm.model.train(mode=True)
-        else:
-            algorithm.model.zero_grad()
+        algorithm.model.zero_grad()
         return {
             'indices': torch.cat(idx_list),
             'per_batch_grads': per_batch_grads,
@@ -221,18 +217,10 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
         diff = num_keep - len(idxs)
         if diff < 0:
             idxs, gammas = idxs[:diff], gammas[:diff]
-        elif algorithm.args.datadiet_exp_version != 1:
-            if algorithm.args.datadiet_exp_version == 1:
-                remain_list = idxs * 10
-                remain_list += list(set(np.arange(len(algorithm.dataset_dict['train_ulb']))))
-            elif algorithm.args.datadiet_exp_version == 2:
-                remain_list = set(np.arange(len(algorithm.dataset_dict['train_ulb'])))
-                remain_list = list(remain_list.difference(set(idxs)))
-            else:
-                remain_list = set(np.arange(len(algorithm.dataset_dict['train_ulb'])))
-                remain_list = list(remain_list.difference(set(idxs)))
-                random.shuffle(remain_list)
-
+        elif algorithm.args.datadiet_exp_version:
+            remain_list = set(np.arange(len(algorithm.dataset_dict['train_ulb'])))
+            remain_list = list(remain_list.difference(set(idxs)))
+            random.shuffle(remain_list)
             idxs.extend(remain_list[:diff])
             gammas.extend([1 for _ in range(diff)])
 
