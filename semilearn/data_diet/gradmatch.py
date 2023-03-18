@@ -89,7 +89,7 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
 
     def compute_val_gradient(self, algorithm):
         from semilearn.algorithms.utils.loss import ce_loss
-        algorithm.model.zero_grad()
+        algorithm.model.eval()
         lb_loader = algorithm.loader_dict['train_lb']
         l0_grads_list, l1_grads_list, idx_list = [], [], []
         mask_list, pseudo_label_list = [], []
@@ -123,7 +123,7 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
             per_batch_grads = l0_grads
         else:
             per_batch_grads = torch.cat([l0_grads, l1_grads], 1)
-        algorithm.model.zero_grad()
+        algorithm.model.train(mode=True)
         return {
             'sum_val_grad': per_batch_grads.sum(0),
             'indices': torch.cat(idx_list),
@@ -139,7 +139,7 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
 
     def compute_example_gradient(self, algorithm):
         from semilearn.algorithms.utils.loss import ce_loss
-        algorithm.model.zero_grad()
+        algorithm.model.eval()
         ulb_loader = algorithm.loader_dict['train_ulb']
         l0_grads_list, l1_grads_list, idx_list = [], [], []
         mask_list, pseudo_label_list = [], []
@@ -177,7 +177,7 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
             per_batch_grads = l0_grads
         else:
             per_batch_grads = torch.cat([l0_grads, l1_grads], 1)
-        algorithm.model.zero_grad()
+        algorithm.model.train(mode=True)
         return {
             'indices': torch.cat(idx_list),
             'per_batch_grads': per_batch_grads,

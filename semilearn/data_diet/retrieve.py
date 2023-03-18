@@ -68,7 +68,6 @@ class DataDietRetrieveHook(DataDietGradMatchHook):
         return {}
 
     def greedy(self, algorithm, budget):
-        self.eta = algorithm.args.datadiet_retrieve_eta
         budget_batch = math.floor(budget / algorithm.loader_dict['train_ulb'].batch_size)
         greedySet = list()
         N = self.grads_per_elem.shape[0]
