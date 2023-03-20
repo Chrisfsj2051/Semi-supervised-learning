@@ -10,6 +10,11 @@ import os
 
 def get_config():
     parser = argparse.ArgumentParser(description='Semi-Supervised Learning (USB)')
+    '''
+    Analysis
+    '''
+    parser.add_argument('--visualize_load_path', type=str, default=None)
+    parser.add_argument('--visualize_eval_results_path', type=str, default=None)
 
     '''
     VCC Related
@@ -75,7 +80,6 @@ def get_config():
     parser.add_argument('-sn', '--save_name', type=str, default='fixmatch')
     parser.add_argument('--resume', action='store_true')
     parser.add_argument('--load_path', type=str)
-    parser.add_argument('--visualize_load_path', type=str, default=None)
     parser.add_argument('-o', '--overwrite', action='store_true', default=True)
     parser.add_argument('--use_tensorboard', action='store_true',
                         help='Use tensorboard to plot and save curves, otherwise save the curves locally.')

@@ -50,8 +50,12 @@ def OrthogonalMP_REG_Parallel_V1(A, b, tol=1E-4, nnz=None, positive=False, lam=1
             temp = torch.matmul(A_i, torch.transpose(A_i, 0, 1)) + lam * torch.eye(A_i.shape[0], device=device)
             x_i, _, _, _ = torch.linalg.lstsq(temp, torch.matmul(A_i, b).view(-1, 1))
             if positive:
+                retry_cnt = 0
                 while min(x_i) < 0.0:
                     argmin = torch.argmin(x_i)
+                    retry_cnt += 1
+                    if retry_cnt % 100 == 0:
+                        print('retry_cnt = ', retry_cnt)
                     indices = indices[:argmin] + indices[argmin + 1:]
                     A_i = torch.cat((A_i[:argmin], A_i[argmin + 1:]), dim=0)
                     temp = torch.matmul(A_i, torch.transpose(A_i, 0, 1)) + lam * torch.eye(A_i.shape[0], device=device)
@@ -217,7 +221,7 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
         diff = num_keep - len(idxs)
         if diff < 0:
             idxs, gammas = idxs[:diff], gammas[:diff]
-        elif algorithm.args.datadiet_exp_version:
+        else:
             remain_list = set(np.arange(len(algorithm.dataset_dict['train_ulb'])))
             remain_list = list(remain_list.difference(set(idxs)))
             random.shuffle(remain_list)

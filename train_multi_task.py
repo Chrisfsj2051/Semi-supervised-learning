@@ -7,6 +7,7 @@ def options():
     parser = argparse.ArgumentParser()
     parser.add_argument('--cfgs', type=str, default=None, nargs='+')
     parser.add_argument('--gpus', type=int, default=None, nargs='+')
+    parser.add_argument('--gpu_start', type=int, default=0)
     return parser.parse_args()
 
 if __name__ == '__main__':
@@ -15,7 +16,7 @@ if __name__ == '__main__':
     if args.gpus == None:
         assert 8 % len(args.cfgs) == 0
         args.gpus = [8 // len(args.cfgs)]
-    gpu_st = 0
+    gpu_st = args.gpu_start
     for gpu, cfg in zip(args.gpus, args.cfgs):
         cur_gpus = ''.join([str(int(gpu_st + i)) + ',' for i in range(gpu)])
         cur_gpus = cur_gpus[:-1]
