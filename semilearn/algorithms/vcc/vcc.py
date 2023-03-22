@@ -45,7 +45,7 @@ class VCC(FlexMatch):
         }
 
     def update_uncertainty_map(self, idx_ulb, recon_gt_ulb_w):
-        if dist.get_world_size() > 1:
+        if self.args.distributed:
             dist_idx_ulb = idx_ulb.new_zeros(self.uncertainty_selected.shape[0])
             dist_upd_val = recon_gt_ulb_w.new_zeros(self.uncertainty_selected.shape[0], recon_gt_ulb_w.shape[1])
             dist_idx_ulb[idx_ulb], dist_upd_val[idx_ulb] = 1, recon_gt_ulb_w
@@ -56,11 +56,11 @@ class VCC(FlexMatch):
             recon_gt_ulb_w = dist_upd_val[idx_ulb]
             dist.barrier()
 
-        self.uncertainty_ema_map = self.uncertainty_ema_map.to(self.gpu)
+        self.uncertainty_ema_map = self.uncertainty_ema_map.to(idx_ulb.device)
         update_weight = torch.ones_like(recon_gt_ulb_w)
         update_weight[self.uncertainty_selected[idx_ulb] == 1] = self.uncertainty_ema_step
         self.uncertainty_selected[idx_ulb] = 1
-        updated_value = update_weight * recon_gt_ulb_w + (1 - update_weight) * self.uncertainty_ema_map[idx_ulb].cuda()
+        updated_value = update_weight * recon_gt_ulb_w + (1 - update_weight) * self.uncertainty_ema_map[idx_ulb].to(idx_ulb.device)
         self.uncertainty_ema_map[idx_ulb] = updated_value
         return updated_value
 

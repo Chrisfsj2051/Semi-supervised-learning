@@ -1,8 +1,10 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3"
 
-import hfai_env
-hfai_env.set_env('ssl')
+try:
+    import hfai_env
+    hfai_env.set_env('ssl')
+except ModuleNotFoundError:
+    pass
 
 import logging
 import random

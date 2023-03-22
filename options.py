@@ -15,6 +15,10 @@ def get_config():
     '''
     parser.add_argument('--visualize_load_path', type=str, default=None)
     parser.add_argument('--visualize_eval_results_path', type=str, default=None)
+    '''
+    Exp
+    '''
+    parser.add_argument('--disable_shm', default=False, action='store_true')
 
     '''
     VCC Related
@@ -228,4 +232,8 @@ def get_config():
         elif os.path.exists(save_path) and not os.path.exists(load_path):
             args.overwrite = True
             print(f'Reset overwrite=True')
+
+    if args.disable_shm:
+        args.num_workers = 0
+        args.multiprocessing_distributed = False
     return args

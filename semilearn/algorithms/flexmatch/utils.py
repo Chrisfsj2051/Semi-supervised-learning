@@ -45,11 +45,12 @@ class FlexMatchThresholdingHook(MaskingHook):
         if not self.classwise_acc.is_cuda:
             self.classwise_acc = self.classwise_acc.to(logits_x_ulb.device)
 
-        rank, world_size = dist.get_rank(), dist.get_world_size()
-        if world_size > 1:
-            dist.all_reduce(self.classwise_acc, op=dist.ReduceOp.SUM)
-            self.classwise_acc /= world_size
-            dist.barrier()
+        if algorithm.args.distributed:
+            rank, world_size = dist.get_rank(), dist.get_world_size()
+            if world_size > 1:
+                dist.all_reduce(self.classwise_acc, op=dist.ReduceOp.SUM)
+                self.classwise_acc /= world_size
+                dist.barrier()
 
         if softmax_x_ulb:
             probs_x_ulb = torch.softmax(logits_x_ulb.detach(), dim=-1)

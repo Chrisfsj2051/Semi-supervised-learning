@@ -1,6 +1,9 @@
 import torch
 import numpy as np
-import functorch
+try:
+    import functorch
+except Exception:
+    functorch = None
 import random
 import torch.distributed as dist
 from .base import DataDietBaseHook
@@ -11,6 +14,8 @@ class DataDietInfluenceHook(DataDietBaseHook):
         super().__init__()
         self.idx2score = {}
         self.batchid2weight = {}
+        if functorch is None:
+            raise ModuleNotFoundError('Please Install Functorch')
 
     def mixup_sampling(self, algorithm, dset, sample_size):
         sampled_indices = np.random.choice(len(dset), sample_size * 2)

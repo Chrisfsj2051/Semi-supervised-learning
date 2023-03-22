@@ -51,7 +51,6 @@ class VariationalConfidenceCalibration(nn.Module):
         ulb_num, lb_num = ulb_x_idx.shape[0], batch_size - 2 * ulb_x_idx.shape[0]
         lb_x, (ulb_x_w, ulb_x_s) = x[:lb_num], x[lb_num:].chunk(2)
         total_ulb_num = len(algorithm.dataset_dict['train_ulb'])
-        rank, world_size = dist.get_rank(), dist.get_world_size()
         if self.datapoint_bank is None:
             self.datapoint_bank = [[] for _ in range(num_classes)]
 
@@ -72,9 +71,10 @@ class VariationalConfidenceCalibration(nn.Module):
         upd_preds = ulb_x_s.new_zeros((total_ulb_num, num_classes))
         upd_cnt = ulb_x_s.new_zeros((total_ulb_num,))
         upd_preds[ulb_x_idx], upd_cnt[ulb_x_idx] = preds, 1
-        dist.all_reduce(upd_preds, op=dist.ReduceOp.SUM)
-        dist.all_reduce(upd_cnt, op=dist.ReduceOp.SUM)
-        dist.barrier()
+        if algorithm.args.distributed:
+            dist.all_reduce(upd_preds, op=dist.ReduceOp.SUM)
+            dist.all_reduce(upd_cnt, op=dist.ReduceOp.SUM)
+            dist.barrier()
         upd_mask = (upd_cnt != 0)
         upd_preds[upd_mask] /= upd_cnt[upd_mask][:, None]
         self.history_preds[upd_mask] = upd_preds[upd_mask]
@@ -99,6 +99,10 @@ class VariationalConfidenceCalibration(nn.Module):
         # Ori confidence
         confidence = all_confidence[lb_num:lb_num + ulb_num]
 
+        if algorithm.args.distributed:
+            rank, world_size = dist.get_rank(), dist.get_world_size()
+        else:
+            rank, world_size = 0, 1
         gmm_feats = torch.cat(
             [confidence.max(1)[0][None], temporal_kl_div[None], entropy[None], view_kl_div[None]], 0
         ).transpose(0, 1)
@@ -107,9 +111,10 @@ class VariationalConfidenceCalibration(nn.Module):
         dist_pseudo_labels = pseudo_labels.new_zeros(ulb_num * world_size)
         dist_gmm_feats[ulb_num * rank: ulb_num * (rank + 1)] = gmm_feats
         dist_pseudo_labels[ulb_num * rank: ulb_num * (rank + 1)] = pseudo_labels
-        dist.all_reduce(dist_gmm_feats, op=dist.ReduceOp.SUM)
-        dist.all_reduce(dist_pseudo_labels, op=dist.ReduceOp.SUM)
-        dist.barrier()
+        if algorithm.args.distributed:
+            dist.all_reduce(dist_gmm_feats, op=dist.ReduceOp.SUM)
+            dist.all_reduce(dist_pseudo_labels, op=dist.ReduceOp.SUM)
+            dist.barrier()
         for i, label in enumerate(dist_pseudo_labels):
             self.datapoint_bank[label].append(dist_gmm_feats[i].cpu().tolist())
             self.datapoint_bank[label] = self.datapoint_bank[label][-100:]

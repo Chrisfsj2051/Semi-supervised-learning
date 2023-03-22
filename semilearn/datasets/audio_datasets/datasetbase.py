@@ -4,7 +4,10 @@
 import torch
 import numpy as np
 import random
-import torchaudio
+try:
+    import torchaudio
+except Exception:
+    torchaudio = None
 
 from torch.utils.data import Dataset
 from semilearn.datasets.utils import get_onehot, random_subsample
@@ -36,6 +39,8 @@ class WaveformTransforms:
         effects.append(["rate", f"{self.sample_rate}"])
 
         wav = torch.from_numpy(wav).reshape(1, -1)
+        if torchaudio is None:
+            raise ModuleNotFoundError('Please Install torchaudio')
         aug_wav, _ = torchaudio.sox_effects.apply_effects_tensor(wav, sample_rate=self.sample_rate, effects=effects)
         aug_wav = aug_wav.numpy()[0]
         return aug_wav
