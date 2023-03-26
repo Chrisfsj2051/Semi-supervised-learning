@@ -29,12 +29,16 @@ def get_config():
     parser.add_argument('--vcc_detach_input', type=bool, default=False)
     parser.add_argument('--vcc_training_warmup', type=int, default=2 ** 30)
     parser.add_argument('--vcc_selection_warmup', type=int, default=2 ** 30)
+    parser.add_argument('--vcc_variance_warmup', type=int, default=0)
     parser.add_argument('--vcc_lab_loss_weight', type=float, default=0.0)
     parser.add_argument('--vcc_unlab_recon_loss_weight', type=float, default=0.0)
     parser.add_argument('--vcc_unlab_kl_loss_weight', type=float, default=0.0)
     parser.add_argument('--vcc_p_cutoff', type=float, default=0.95)
     parser.add_argument('--vcc_only_supervised', type=bool, default=False)
     parser.add_argument('--vcc_disable_variance', type=bool, default=False)
+    parser.add_argument('--vcc_reinit_threshold', type=bool, default=False)
+    parser.add_argument('--vcc_datapoint_bank_size', type=int, default=100)
+
     # Uncertainty
     parser.add_argument('--vcc_uncertainty_method', type=str, default='mcdropout',
                         choices=['mcdropout', 'mccutout', 'mcdropout_mean', 'mcdropout_mean_sampling'])

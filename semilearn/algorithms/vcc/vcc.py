@@ -104,6 +104,8 @@ class VCC(FlexMatch):
                 self.set_vcc_requires_grad(False)
             elif self.it == self.vcc_training_warmup:
                 self.set_vcc_requires_grad(True)
+                if self.args.vcc_reinit_threshold:
+                    self.call_hook("init_records", "MaskingHook")
 
             if self.it > self.vcc_training_warmup:
                 loss_warmup_alpha = min((self.it - self.vcc_training_warmup) / 100, 1.0)
@@ -112,7 +114,7 @@ class VCC(FlexMatch):
                 vcc_lab_loss_weight = self.vcc_lab_loss_weight * loss_warmup_alpha
                 self.p_cutoff = self.args.p_cutoff
             if self.it > self.vcc_selection_warmup:
-                if self.args.vcc_disable_variance:
+                if self.args.vcc_disable_variance or self.it < self.args.vcc_variance_warmup:
                     vcc_logits = recon_gt_ulb_w
                     softmax_x_ulb = False
                 else:

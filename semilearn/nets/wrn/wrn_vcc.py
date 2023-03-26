@@ -115,9 +115,10 @@ class VariationalConfidenceCalibration(nn.Module):
             dist.all_reduce(dist_gmm_feats, op=dist.ReduceOp.SUM)
             dist.all_reduce(dist_pseudo_labels, op=dist.ReduceOp.SUM)
             dist.barrier()
+        datapoint_bank_size = algorithm.args.vcc_datapoint_bank_size
         for i, label in enumerate(dist_pseudo_labels):
             self.datapoint_bank[label].append(dist_gmm_feats[i].cpu().tolist())
-            self.datapoint_bank[label] = self.datapoint_bank[label][-100:]
+            self.datapoint_bank[label] = self.datapoint_bank[label][-datapoint_bank_size:]
 
         cali_conf = all_confidence
 

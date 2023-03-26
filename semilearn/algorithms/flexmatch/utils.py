@@ -18,6 +18,9 @@ class FlexMatchThresholdingHook(MaskingHook):
         self.ulb_dest_len = ulb_dest_len
         self.num_classes = num_classes
         self.thresh_warmup = thresh_warmup
+        self.init_records()
+
+    def init_records(self, *args):
         self.selected_label = torch.ones((self.ulb_dest_len,), dtype=torch.long, ) * -1
         self.classwise_acc = torch.zeros((self.num_classes,))
 

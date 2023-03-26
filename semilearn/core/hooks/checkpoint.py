@@ -19,6 +19,8 @@ class CheckpointHook(Hook):
             if (self.every_n_iters(algorithm, algorithm.num_eval_iter) or self.is_last_iter(algorithm)):
                 algorithm.save_model('latest_model.pth', save_path)
                 eval_results_path = os.path.join(save_path, 'eval_results')
+                if not os.path.exists(eval_results_path):
+                    os.makedirs(eval_results_path)
                 joblib.dump(algorithm.eval_results,
                             os.path.join(eval_results_path, f'eval_{algorithm.it + 1:010d}.pth'))
 
