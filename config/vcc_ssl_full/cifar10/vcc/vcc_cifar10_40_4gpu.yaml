@@ -1,6 +1,6 @@
 algorithm: vcc
 save_dir: ./saved_models/vcc_ssl_full/cifar10/vcc
-save_name: vcc_cifar10_40_4gpu
+save_name: vcc_cifar10_40_4gpu_2
 vcc_uncertainty_method: consistency
 vcc_enc_norm: bn
 vcc_dec_norm: bn

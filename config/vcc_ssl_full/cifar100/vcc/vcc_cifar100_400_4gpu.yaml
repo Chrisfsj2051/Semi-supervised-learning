@@ -1,6 +1,6 @@
 algorithm: vcc
 save_dir: ./saved_models/vcc_ssl_full/cifar100/vcc
-save_name: vcc_cifar100_2500_4gpu_warm1
+save_name: vcc_cifar100_400_4gpu
 vcc_uncertainty_method: consistency
 vcc_enc_norm: bn
 vcc_dec_norm: bn
@@ -24,7 +24,7 @@ epoch: 1024
 num_train_iter: 1048576
 save_interval: 50000
 num_eval_iter: 1000
-num_labels: 2500
+num_labels: 400
 batch_size: 64
 eval_batch_size: 256
 hard_label: True
