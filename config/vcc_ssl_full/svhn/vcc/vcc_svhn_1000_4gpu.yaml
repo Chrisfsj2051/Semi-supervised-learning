@@ -1,5 +1,5 @@
 algorithm: vcc
-save_dir: ./saved_models/vcc_ssl_tiny/svhn/vcc
+save_dir: ./saved_models/vcc_ssl_full/svhn/vcc
 save_name: vcc_svhn_1000_4gpu
 vcc_uncertainty_method: consistency
 vcc_enc_norm: bn

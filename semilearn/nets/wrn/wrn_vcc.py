@@ -19,6 +19,7 @@ class VariationalConfidenceCalibration(nn.Module):
         self.sampling_times = args.vcc_mc_sampling_times
         self.num_classes = num_classes
         self.base_net = base_net
+        self.num_features = base_net.num_features
         self.z_dim = args.vcc_z_dim
         self.dropout_keep_p = args.vcc_mc_keep_p
         self.detach_input = args.vcc_detach_input

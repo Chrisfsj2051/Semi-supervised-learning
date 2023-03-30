@@ -10,11 +10,8 @@ import torch.distributed as dist
 import numpy as np
 from semilearn.algorithms.utils import ce_loss, consistency_loss
 
-
-class VCC(FlexMatch):
-
+class VCCBase:
     def __init__(self, args, net_builder, tb_log=None, logger=None):
-        super().__init__(args, net_builder, tb_log, logger)
         self.vcc_training_warmup = args.vcc_training_warmup
         self.vcc_selection_warmup = args.vcc_selection_warmup
         self.vcc_unlab_recon_loss_weight = args.vcc_unlab_recon_loss_weight
@@ -60,7 +57,8 @@ class VCC(FlexMatch):
         update_weight = torch.ones_like(recon_gt_ulb_w)
         update_weight[self.uncertainty_selected[idx_ulb] == 1] = self.uncertainty_ema_step
         self.uncertainty_selected[idx_ulb] = 1
-        updated_value = update_weight * recon_gt_ulb_w + (1 - update_weight) * self.uncertainty_ema_map[idx_ulb].to(idx_ulb.device)
+        updated_value = update_weight * recon_gt_ulb_w + (1 - update_weight) * self.uncertainty_ema_map[idx_ulb].to(
+            idx_ulb.device)
         self.uncertainty_ema_map[idx_ulb] = updated_value
         return updated_value
 
@@ -69,6 +67,66 @@ class VCC(FlexMatch):
                             self.model.module.decoder.parameters())
         for param in params_list:
             param.requires_grad = requires_grad
+
+    def update_save_dict(self, save_dict):
+        save_dict['uncertainty_selected'] = self.uncertainty_selected.cpu()
+        save_dict['uncertainty_ema_map'] = self.uncertainty_ema_map.cpu()
+        save_dict = self.model.module.update_save_dict(save_dict)
+        return save_dict
+
+    def load_vcc_model(self, checkpoint):
+        self.uncertainty_selected = checkpoint['uncertainty_selected'].cuda(self.gpu)
+        self.uncertainty_ema_map = checkpoint['uncertainty_ema_map'].cuda(self.gpu)
+        self.model.module.load_model(checkpoint)
+        self.print_fn("additional VCC parameter loaded")
+        return checkpoint
+
+    def predict(self, eval_dest):
+        self.model.eval()
+        self.ema.apply_shadow()
+        eval_loader = self.loader_dict[eval_dest]
+        total_loss, total_num = 0.0, 0.0
+        y_true, y_pred, y_probs, y_logits = [], [], [], []
+        with torch.no_grad():
+            for data in eval_loader:
+                x = data['x_lb']
+                y = data['y_lb']
+
+                if isinstance(x, dict):
+                    x = {k: v.cuda(self.gpu) for k, v in x.items()}
+                else:
+                    x = x.cuda(self.gpu)
+                y = y.cuda(self.gpu)
+
+                num_batch = y.shape[0]
+                total_num += num_batch
+
+                output = self.model(self, x)
+                logits = output['logits']
+
+                loss = F.cross_entropy(logits, y, reduction='mean')
+                y_true.extend(y.cpu().tolist())
+                y_pred.extend(torch.max(logits, dim=-1)[1].cpu().tolist())
+                y_logits.append(logits.cpu().numpy())
+                if self.args.vcc_disable_variance and self.args.vcc_uncertainty_method != 'consistency':
+                    y_probs.append(output['recon_gt'].cpu().numpy())
+                else:
+                    y_probs.append(torch.softmax(output['calibrated_logits'], dim=-1).cpu().numpy())
+                total_loss += loss.item() * num_batch
+
+        self.ema.restore()
+        self.model.train()
+        y_true = np.array(y_true)
+        y_pred = np.array(y_pred)
+        y_logits = np.concatenate(y_logits)
+        y_probs = np.concatenate(y_probs)
+        return y_true, y_pred, y_logits, y_probs, total_loss, total_num
+
+class VCC(VCCBase, FlexMatch):
+
+    def __init__(self, args, net_builder, tb_log=None, logger=None):
+        FlexMatch.__init__(self, args, net_builder, tb_log, logger)
+        VCCBase.__init__(self, args, net_builder, tb_log, logger)
 
     def train_step(self, x_lb, y_lb, idx_ulb, x_ulb_w, x_ulb_s):
         num_lb = y_lb.shape[0]
@@ -142,12 +200,6 @@ class VCC(FlexMatch):
             total_loss = (sup_loss + unsup_loss + recon_loss_ulb_w +
                           kl_loss_ulb_w + kl_loss_lb + recon_loss_lb)
 
-            # for index in range(10):
-            #     print('vae: \n', calibrated_logits_ulb_w.softmax(1)[index].topk(1))
-            #     print('cali_gt: \n', recon_gt_ulb_w[index].topk(1))
-            #     print('ori_conf: \n', logits_x_ulb_w.softmax(1)[index].topk(1), '\n...........')
-
-            # parameter updates
         self.call_hook("param_update", "ParamUpdateHook", loss=total_loss)
 
         tb_dict = {}
@@ -163,56 +215,10 @@ class VCC(FlexMatch):
 
     def get_save_dict(self):
         save_dict = super().get_save_dict()
-        save_dict['uncertainty_selected'] = self.uncertainty_selected.cpu()
-        save_dict['uncertainty_ema_map'] = self.uncertainty_ema_map.cpu()
-        save_dict = self.model.module.update_save_dict(save_dict)
+        save_dict = self.update_save_dict(save_dict)
         return save_dict
 
     def load_model(self, load_path):
         checkpoint = super(VCC, self).load_model(load_path)
-        self.uncertainty_selected = checkpoint['uncertainty_selected'].cuda(self.gpu)
-        self.uncertainty_ema_map = checkpoint['uncertainty_ema_map'].cuda(self.gpu)
-        self.model.module.load_model(checkpoint)
-        self.print_fn("additional VCC parameter loaded")
+        checkpoint = self.load_vcc_model(checkpoint)
         return checkpoint
-
-    def predict(self, eval_dest):
-        self.model.eval()
-        self.ema.apply_shadow()
-        eval_loader = self.loader_dict[eval_dest]
-        total_loss, total_num = 0.0, 0.0
-        y_true, y_pred, y_probs, y_logits = [], [], [], []
-        with torch.no_grad():
-            for data in eval_loader:
-                x = data['x_lb']
-                y = data['y_lb']
-
-                if isinstance(x, dict):
-                    x = {k: v.cuda(self.gpu) for k, v in x.items()}
-                else:
-                    x = x.cuda(self.gpu)
-                y = y.cuda(self.gpu)
-
-                num_batch = y.shape[0]
-                total_num += num_batch
-
-                output = self.model(self, x)
-                logits = output['logits']
-
-                loss = F.cross_entropy(logits, y, reduction='mean')
-                y_true.extend(y.cpu().tolist())
-                y_pred.extend(torch.max(logits, dim=-1)[1].cpu().tolist())
-                y_logits.append(logits.cpu().numpy())
-                if self.args.vcc_disable_variance and self.args.vcc_uncertainty_method != 'consistency':
-                    y_probs.append(output['recon_gt'].cpu().numpy())
-                else:
-                    y_probs.append(torch.softmax(output['calibrated_logits'], dim=-1).cpu().numpy())
-                total_loss += loss.item() * num_batch
-
-        self.ema.restore()
-        self.model.train()
-        y_true = np.array(y_true)
-        y_pred = np.array(y_pred)
-        y_logits = np.concatenate(y_logits)
-        y_probs = np.concatenate(y_probs)
-        return y_true, y_pred, y_logits, y_probs, total_loss, total_num

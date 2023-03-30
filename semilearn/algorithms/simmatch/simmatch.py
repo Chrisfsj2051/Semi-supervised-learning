@@ -108,7 +108,7 @@ class SimMatch(AlgorithmBase):
         ema_model = self.net_builder(num_classes=self.num_classes)
         ema_model = SimMatch_Net(ema_model, proj_size=self.args.proj_size)
         ema_model.load_state_dict(self.model.state_dict())
-        return ema_model    
+        return ema_model
 
 
     @torch.no_grad()
