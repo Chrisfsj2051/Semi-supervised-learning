@@ -1,5 +1,5 @@
 algorithm: vcc
-save_dir: ./saved_models/vcc_ssl_full/cifar10/vcc
+save_dir: ./saved_models/vcc_ssl_full/cifar10/vccflex
 save_name: vcc_cifar10_4000_4gpu
 vcc_uncertainty_method: consistency
 vcc_enc_norm: bn
@@ -13,6 +13,7 @@ resume: False
 load_path: None
 vcc_training_warmup: 180000
 vcc_selection_warmup: 360000
+vcc_variance_warmup: 540000
 vcc_lab_loss_weight: 0.0
 vcc_unlab_recon_loss_weight: 2.0
 vcc_unlab_kl_loss_weight: 2.0

@@ -1,6 +1,6 @@
-algorithm: vcc
-save_dir: ./saved_models/vcc_ssl_full/stl10/vcc
-save_name: vcc_stl10_1000_4gpu
+algorithm: vcc_fixmatch
+save_dir: ./saved_models/vcc_ssl_full/stl10/vccfix
+save_name: vcc_stl10_250_4gpu
 vcc_uncertainty_method: consistency
 vcc_enc_norm: bn
 vcc_dec_norm: bn
@@ -13,6 +13,7 @@ resume: False
 load_path: None
 vcc_training_warmup: 180000
 vcc_selection_warmup: 360000
+vcc_variance_warmup: 540000
 vcc_lab_loss_weight: 0.0
 vcc_unlab_recon_loss_weight: 2.0
 vcc_unlab_kl_loss_weight: 2.0
@@ -24,7 +25,7 @@ epoch: 1024
 num_train_iter: 1048576
 save_interval: 50000
 num_eval_iter: 1000
-num_labels: 1000
+num_labels: 250
 batch_size: 64
 eval_batch_size: 256
 hard_label: True

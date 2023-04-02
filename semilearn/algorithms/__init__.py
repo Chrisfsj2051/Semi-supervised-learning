@@ -18,7 +18,7 @@ from .fullysupervised import FullySupervised
 from .comatch import CoMatch
 from .simmatch import SimMatch
 from .adamatch import AdaMatch
-from .vcc import VCC, VCCSimMatch
+from .vcc import VCC, VCCSimMatch, VCCFixMatch
 
 # if any new alg., please append the dict
 name2alg = {
@@ -39,6 +39,7 @@ name2alg = {
     'simmatch': SimMatch,
     'dash': Dash,
     'vcc': VCC,
+    'vcc_fixmatch': VCCFixMatch,
     'vcc_simmatch': VCCSimMatch
     # 'mpl': MPL
 }

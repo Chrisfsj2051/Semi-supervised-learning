@@ -219,6 +219,6 @@ class VCC(VCCBase, FlexMatch):
         return save_dict
 
     def load_model(self, load_path):
-        checkpoint = super(VCC, self).load_model(load_path)
+        checkpoint = super().load_model(load_path)
         checkpoint = self.load_vcc_model(checkpoint)
         return checkpoint

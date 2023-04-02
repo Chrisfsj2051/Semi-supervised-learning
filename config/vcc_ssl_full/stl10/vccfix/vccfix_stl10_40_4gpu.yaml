@@ -1,6 +1,6 @@
-algorithm: vcc
-save_dir: ./saved_models/vcc_ssl_full/cifar10/vcc
-save_name: vcc_cifar10_40_4gpu_2
+algorithm: vcc_fixmatch
+save_dir: ./saved_models/vcc_ssl_full/stl10/vccfix
+save_name: vcc_stl10_40_4gpu
 vcc_uncertainty_method: consistency
 vcc_enc_norm: bn
 vcc_dec_norm: bn
@@ -13,6 +13,7 @@ resume: False
 load_path: None
 vcc_training_warmup: 180000
 vcc_selection_warmup: 360000
+vcc_variance_warmup: 540000
 vcc_lab_loss_weight: 0.0
 vcc_unlab_recon_loss_weight: 2.0
 vcc_unlab_kl_loss_weight: 2.0
@@ -35,7 +36,7 @@ ulb_loss_ratio: 1.0
 uratio: 7
 ema_m: 0.999
 crop_ratio: 0.875
-img_size: 32
+img_size: 96
 optim: SGD
 lr: 0.03
 momentum: 0.9
@@ -44,10 +45,10 @@ layer_decay: 1.0
 amp: False
 clip: 0.0
 use_cat: True
-net: vcc_wrn_28_2
+net: vcc_wrn_var_37_2
 net_from_name: False
 data_dir: ./data
-dataset: cifar10
+dataset: stl10
 train_sampler: RandomSampler
 num_classes: 10
 num_workers: 1
@@ -55,7 +56,7 @@ seed: 0
 world_size: 1
 rank: 0
 multiprocessing_distributed: True
-dist_url: tcp://127.0.0.1:10024
+dist_url: tcp://127.0.0.1:10002
 dist_backend: nccl
 gpu: None
 num_log_iter: 100

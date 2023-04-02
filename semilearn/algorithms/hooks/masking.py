@@ -35,6 +35,9 @@ class FixedThresholdingHook(MaskingHook):
     Common Fixed Threshold used in fixmatch, uda, pseudo label, et. al.
     """
 
+    def get_threshold(self, algorithm):
+        return algorithm.p_cutoff
+
     @torch.no_grad()
     def masking(self, algorithm, logits_x_ulb, softmax_x_ulb=True, *args, **kwargs):
         if softmax_x_ulb:
