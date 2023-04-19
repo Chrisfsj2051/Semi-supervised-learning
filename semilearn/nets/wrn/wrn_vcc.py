@@ -104,9 +104,16 @@ class VariationalConfidenceCalibration(nn.Module):
             rank, world_size = dist.get_rank(), dist.get_world_size()
         else:
             rank, world_size = 0, 1
-        gmm_feats = torch.cat(
-            [confidence.max(1)[0][None], temporal_kl_div[None], entropy[None], view_kl_div[None]], 0
-        ).transpose(0, 1)
+
+        gmm_feats = [confidence.max(1)[0][None]]
+        if not self.args.vcc_disable_temporal:
+            gmm_feats.append(temporal_kl_div[None])
+        if not self.args.vcc_disable_entropy:
+            gmm_feats.append(entropy[None])
+        if not self.args.vcc_disable_view:
+            gmm_feats.append(view_kl_div[None])
+
+        gmm_feats = torch.cat(gmm_feats, 0).transpose(0, 1)
         pseudo_labels = logits[lb_num:lb_num + ulb_num].argmax(1)
         dist_gmm_feats = gmm_feats.new_zeros(ulb_num * world_size, gmm_feats.shape[1])
         dist_pseudo_labels = pseudo_labels.new_zeros(ulb_num * world_size)
@@ -219,25 +226,13 @@ class VariationalConfidenceCalibration(nn.Module):
             sample_mu, sample_logvar = h.chunk(2, dim=1)
             z = self.reparameterise(sample_mu, sample_logvar)
             cali_output = self.decoder(x, logits, feats, z)
-            # for idx in range(self.args.batch_size, self.args.batch_size * 8):
-            #     import math
-            #     if math.fabs(recon_r.softmax(1)[idx].max() - cali_gt_label[idx].max()) < 0.05:
-            #         continue
-            #     print('conf:', logits.softmax(1)[idx].topk(1), '\n')
-            #     print('cali_gt:', cali_gt_label[idx].topk(1), '\n')
-            #     print('cali_recon:', recon_r.softmax(1)[idx].topk(1), '\n')
-            #     print('cali_repa_recon:')
-            #     for _ in range(3):
-            #         z = self.reparameterise(sample_mu, sample_logvar)
-            #         cali_output = self.decoder(x, logits, feats, z)
-            #         print(cali_output.softmax(1)[idx].topk(1))
-            #     print('==============')
 
         return {
             'logits': logits,
             'recon_pred': recon_r,
             'recon_gt': cali_gt_label,
             'mu': mu,
+            'feats': feats,
             'logvar': logvar,
             'calibrated_logits': cali_output
         }

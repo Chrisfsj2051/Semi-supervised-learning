@@ -41,9 +41,11 @@ class DataDietBaseHook(Hook):
         self.apply_prune(algorithm, keep_num, predictions)
 
     def before_run(self, algorithm):
-        if algorithm.epoch > 1:
+        if algorithm.epoch >= algorithm.args.datadiet_warmup_epoch:
             self.process(algorithm)
 
     def before_train_epoch(self, algorithm):
-        if algorithm.epoch > 1 and self.every_n_epochs(algorithm, algorithm.args.datadiet_interval):
+        apply_data_diet = algorithm.epoch > 1 and self.every_n_epochs(algorithm, algorithm.args.datadiet_interval)
+        apply_data_diet |= algorithm.epoch == algorithm.args.datadiet_warmup_epoch
+        if apply_data_diet:
             self.process(algorithm)

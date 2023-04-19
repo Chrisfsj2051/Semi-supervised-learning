@@ -21,11 +21,11 @@ def main():
     calibration_diag = ConfidenceHistogram()
     calibration_hist = ReliabilityDiagram()
     plt = calibration_hist.plot(y_logits, y_true)
-    plt.savefig('exchange/fully_cali_hist.png')
-    # plt.show()
+    # plt.savefig('exchange/vcc_cali_hist.png')
+    plt.show()
     plt = calibration_diag.plot(y_logits, y_true)
-    plt.savefig('exchange/fully_cali_diag.png')
-    # plt.show()
+    # plt.savefig('exchange/vcc_cali_diag.png')
+    plt.show()
 
 if __name__ == '__main__':
     main()

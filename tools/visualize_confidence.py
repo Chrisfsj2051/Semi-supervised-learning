@@ -16,7 +16,10 @@ def init_algorithm():
                             world_size=args.world_size, rank=args.rank)
     algorithm.model = send_model_cuda(algorithm.args, algorithm.model)
     algorithm.ema_model = send_model_cuda(algorithm.args, algorithm.ema_model)
-    algorithm.load_model(algorithm.args.visualize_load_path)
+    try:
+        algorithm.load_model(algorithm.args.visualize_load_path)
+    except Exception:
+        print('Load model dict failed!!!!!!')
     algorithm.call_hook("before_run")
     algorithm.dataset_dict['eval'].alg = 'evaluation'
     return algorithm

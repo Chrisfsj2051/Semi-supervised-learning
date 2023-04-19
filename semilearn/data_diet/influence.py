@@ -30,14 +30,20 @@ class DataDietInfluenceHook(DataDietBaseHook):
         mixup_ratio = mixup_ratio.squeeze()[:, None]
         mixup_y.scatter_(1, sampled_y[::2, None], mixup_ratio)
         mixup_y.scatter_(1, sampled_y[1::2, None], 1 - mixup_ratio)
-        return mixup_x, mixup_y
+        return mixup_x, mixup_y, sampled_x, mixup_ratio
 
     def compute_val_grads(self, algorithm, model_params):
         from semilearn.algorithms.utils.loss import ce_loss
         val_size = algorithm.args.batch_size * algorithm.args.uratio
         lb_dset = algorithm.dataset_dict['train_lb']
-        mixup_x, mixup_y = self.mixup_sampling(algorithm, lb_dset, val_size)
-        val_logits = algorithm.model(mixup_x)['logits']
+        if algorithm.args.datadiet_val_grad_method == 'mixup':
+            mixup_x, mixup_y, _, _ = self.mixup_sampling(algorithm, lb_dset, val_size)
+            val_logits = algorithm.model(mixup_x)['logits']
+        else:
+            _, mixup_y, sampled_x, mixup_ratio = self.mixup_sampling(algorithm, lb_dset, val_size)
+            val_feats = algorithm.model(sampled_x, only_feat=True)
+            mixup_val_feats = val_feats[::2] * mixup_ratio + val_feats[1::2] * (1 - mixup_ratio)
+            val_logits = algorithm.model.module.fc(mixup_val_feats)
         val_loss = ce_loss(val_logits, mixup_y, reduction='mean')
         val_grads = torch.autograd.grad(val_loss, model_params)
         val_grads = torch.cat([x.flatten() for x in val_grads])

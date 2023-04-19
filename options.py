@@ -38,6 +38,9 @@ def get_config():
     parser.add_argument('--vcc_disable_variance', type=bool, default=False)
     parser.add_argument('--vcc_reinit_threshold', type=bool, default=False)
     parser.add_argument('--vcc_datapoint_bank_size', type=int, default=100)
+    parser.add_argument('--vcc_disable_temporal', type=bool, default=False)
+    parser.add_argument('--vcc_disable_entropy', type=bool, default=False)
+    parser.add_argument('--vcc_disable_view', type=bool, default=False)
 
     # Uncertainty
     parser.add_argument('--vcc_uncertainty_method', type=str, default='mcdropout',
@@ -60,10 +63,13 @@ def get_config():
     Data diet
     '''
     parser.add_argument('--datadiet_interval', type=int, default=2 ** 30)
+    parser.add_argument('--datadiet_warmup_epoch', type=int, default=40)
     parser.add_argument('--datadiet_keep_num', type=int, default=2 ** 30)
     parser.add_argument('--datadiet_method', type=str, default=None,
                         choices=[None, 'influence', 'random', 'el2n',
                                  'gradmatch', 'retrieve'])
+    parser.add_argument('--datadiet_val_grad_method', type=str, default='mixup',
+                        choices=['mixup', 'mixup_feat'])
     parser.add_argument('--datadiet_adjust_lr_decay', type=bool, default=False)
     parser.add_argument('--datadiet_exp_version', default=0, type=int)
     parser.add_argument('--datadiet_influence_group_size', default=448, type=int)

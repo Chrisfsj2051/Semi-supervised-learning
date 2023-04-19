@@ -134,7 +134,7 @@ class WideResNet(nn.Module):
         """
 
         if only_fc:
-            return self.fc(x)
+            return self.fc(x) * self.temperature_scaling
         
         out = self.extract(x)
         out = F.adaptive_avg_pool2d(out, 1)
