@@ -8,7 +8,7 @@ from semilearn.data_diet.gradmatch import DataDietGradMatchHook
 class DataDietRetrieveHook(DataDietGradMatchHook):
     def __init__(self):
         super().__init__()
-        self.eta = 0.97
+        self.eta = 0.03
 
     def get_batch_weight(self, algorithm, idx_ulb):
         return 1.0

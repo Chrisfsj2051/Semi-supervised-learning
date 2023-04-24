@@ -74,7 +74,7 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
     def __init__(self):
         super().__init__()
         self.id2weight = {}
-        self.lam = 5.0
+        self.lam = 0.5
         self.eps = 1e-100
 
     def get_batch_weight(self, algorithm, idx_ulb):
@@ -156,10 +156,7 @@ class DataDietGradMatchHook(DataDietInfluenceHook):
             conf_w = torch.softmax(logits_w, 1)
             pseudo_conf, pseudo_label = conf_w.max(1)
             mask = algorithm.call_hook("masking", "MaskingHook", logits_x_ulb=logits_w, idx_ulb=None)
-            if algorithm.args.datadiet_exp_version == 100:
-                ulb_loss = (ce_loss(logits_s, pseudo_label, reduction='none')).sum()
-            else:
-                ulb_loss = (ce_loss(logits_s, pseudo_label, reduction='none') * mask).sum()
+            ulb_loss = (ce_loss(logits_s, pseudo_label, reduction='none') * mask).sum()
             embDim = feat_s.shape[1]
             l0_grads = torch.autograd.grad(ulb_loss, logits_s)[0]
             l0_expand = torch.repeat_interleave(l0_grads, embDim, dim=1)

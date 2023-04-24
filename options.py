@@ -21,45 +21,6 @@ def get_config():
     parser.add_argument('--disable_shm', default=False, action='store_true')
 
     '''
-    VCC Related
-    '''
-    parser.add_argument('--vcc_z_dim', type=int, default=0)
-    parser.add_argument('--vcc_encoder_dims', type=int, nargs='+', default=[128, 256])
-    parser.add_argument('--vcc_decoder_dims', type=int, nargs='+', default=[256, 128])
-    parser.add_argument('--vcc_detach_input', type=bool, default=False)
-    parser.add_argument('--vcc_training_warmup', type=int, default=2 ** 30)
-    parser.add_argument('--vcc_selection_warmup', type=int, default=2 ** 30)
-    parser.add_argument('--vcc_variance_warmup', type=int, default=0)
-    parser.add_argument('--vcc_lab_loss_weight', type=float, default=0.0)
-    parser.add_argument('--vcc_unlab_recon_loss_weight', type=float, default=0.0)
-    parser.add_argument('--vcc_unlab_kl_loss_weight', type=float, default=0.0)
-    parser.add_argument('--vcc_p_cutoff', type=float, default=0.95)
-    parser.add_argument('--vcc_only_supervised', type=bool, default=False)
-    parser.add_argument('--vcc_disable_variance', type=bool, default=False)
-    parser.add_argument('--vcc_reinit_threshold', type=bool, default=False)
-    parser.add_argument('--vcc_datapoint_bank_size', type=int, default=100)
-    parser.add_argument('--vcc_disable_temporal', type=bool, default=False)
-    parser.add_argument('--vcc_disable_entropy', type=bool, default=False)
-    parser.add_argument('--vcc_disable_view', type=bool, default=False)
-
-    # Uncertainty
-    parser.add_argument('--vcc_uncertainty_method', type=str, default='mcdropout',
-                        choices=['mcdropout', 'mccutout', 'mcdropout_mean', 'mcdropout_mean_sampling'])
-    parser.add_argument('--vcc_recon_loss', type=str, default='cross_entropy',
-                        choices=['cross_entropy', 'mse', 'mae'])
-    # Monte-Calor
-    parser.add_argument('--vcc_mc_upd_ratio', type=float, default=1.0)
-    parser.add_argument('--vcc_mc_keep_p', type=float, default=0.5)
-    parser.add_argument('--vcc_mc_dropsize', type=int, default=5) # for cifar dataset
-    parser.add_argument('--vcc_mc_sampling_times', type=int, default=20)
-    # VCC EncoderDecoder
-    parser.add_argument('--vcc_dec_model', type=str, default='early_fusion',
-                        choices=['early_fusion', 'late_fusion'])
-    parser.add_argument('--vcc_enc_norm', type=str, default='none',
-                        choices=['none', 'ln', 'bn', 'bn+ln'])
-    parser.add_argument('--vcc_dec_norm', type=str, default='none',
-                        choices=['none', 'bn', 'ln', 'bn+ln'])
-    '''
     Data diet
     '''
     parser.add_argument('--datadiet_interval', type=int, default=2 ** 30)
@@ -68,12 +29,6 @@ def get_config():
     parser.add_argument('--datadiet_method', type=str, default=None,
                         choices=[None, 'influence', 'random', 'el2n',
                                  'gradmatch', 'retrieve'])
-    parser.add_argument('--datadiet_val_grad_method', type=str, default='mixup',
-                        choices=['mixup', 'mixup_feat'])
-    parser.add_argument('--datadiet_adjust_lr_decay', type=bool, default=False)
-    parser.add_argument('--datadiet_exp_version', default=0, type=int)
-    parser.add_argument('--datadiet_influence_group_size', default=448, type=int)
-    parser.add_argument('--datadiet_influence_calculate_num', default=1, type=int)
     parser.add_argument('--datadiet_grad_params', default='backbone', type=str,
                         choices=['backbone', 'linear', 'linear_backbone'])
     '''

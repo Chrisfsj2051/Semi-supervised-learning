@@ -5,7 +5,7 @@ resume: False
 datadiet_grad_params: linear_backbone
 datadiet_interval: 10
 datadiet_keep_num: 20000
-datadiet_method: influence
+datadiet_method: gradmatch
 load_path: None
 overwrite: False
 save_interval: 20000
