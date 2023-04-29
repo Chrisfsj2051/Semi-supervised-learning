@@ -1,5 +1,8 @@
 import torch
 import numpy as np
+
+from ..nets.wrn.wrn_vcc import VariationalConfidenceCalibration
+
 try:
     import functorch
 except Exception:
@@ -38,7 +41,10 @@ class DataDietInfluenceHook(DataDietBaseHook):
         lb_dset = algorithm.dataset_dict['train_lb']
         if algorithm.args.datadiet_val_grad_method == 'mixup':
             mixup_x, mixup_y, _, _ = self.mixup_sampling(algorithm, lb_dset, val_size)
-            val_logits = algorithm.model(mixup_x)['logits']
+            if isinstance(algorithm.model.module, VariationalConfidenceCalibration):
+                val_logits = algorithm.model(algorithm, mixup_x)['logits']
+            else:
+                val_logits = algorithm.model(mixup_x)['logits']
         else:
             _, mixup_y, sampled_x, mixup_ratio = self.mixup_sampling(algorithm, lb_dset, val_size)
             val_feats = algorithm.model(sampled_x, only_feat=True)
@@ -56,7 +62,10 @@ class DataDietInfluenceHook(DataDietBaseHook):
         for ulb_data in ulb_loader:
             idx = ulb_data['idx_ulb']
             x_concat = torch.cat([ulb_data['x_ulb_w'], ulb_data['x_ulb_s']], 0)
-            output_concat = algorithm.model(x_concat)
+            if isinstance(algorithm.model.module, VariationalConfidenceCalibration):
+                output_concat = algorithm.model(algorithm, x_concat)
+            else:
+                output_concat = algorithm.model(x_concat)
             logits_w, logits_s = output_concat['logits'].chunk(2)
             conf_w = torch.softmax(logits_w, 1).detach()
             pseudo_conf, pseudo_label = conf_w.max(1)

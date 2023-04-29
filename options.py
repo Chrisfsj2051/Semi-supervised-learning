@@ -19,7 +19,11 @@ def get_config():
     Exp
     '''
     parser.add_argument('--disable_shm', default=False, action='store_true')
-
+    '''
+    MLP FixMatch Related
+    '''
+    parser.add_argument('--calc_weight_method', default='mlp', choices=['mlp', 'softmax'], type=str)
+    parser.add_argument('--l2_weight', default=0.0, type=float)
     '''
     VCC Related
     '''

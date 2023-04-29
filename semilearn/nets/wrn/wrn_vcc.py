@@ -30,6 +30,9 @@ class VariationalConfidenceCalibration(nn.Module):
         self.history_preds = None
         self.datapoint_bank = None
 
+    def get_influence_function_params(self, grad_params):
+        return self.base_net.get_influence_function_params(grad_params)
+
     def reparameterise(self, mu, logvar):
         epsilon = torch.randn_like(mu)
         return mu + epsilon * torch.exp(logvar / 2)
@@ -211,7 +214,7 @@ class VariationalConfidenceCalibration(nn.Module):
         assert not only_feat
         backbone_output = self.base_net(x, only_fc, only_feat, **kwargs)
         logits, feats = backbone_output['logits'], backbone_output['feat']
-        if ulb_x_idx is not None:
+        if ulb_x_idx is not None and algorithm is not None:
             cali_gt_label = self.calc_uncertainty(
                 algorithm=algorithm, x=x, ulb_x_idx=ulb_x_idx, feats=feats, logits=logits)
         else:

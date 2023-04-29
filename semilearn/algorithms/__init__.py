@@ -19,6 +19,7 @@ from .comatch import CoMatch
 from .simmatch import SimMatch
 from .adamatch import AdaMatch
 from .vcc import VCC, VCCSimMatch, VCCFixMatch
+from .mlp_fixmatch import MLPFixMatch
 
 # if any new alg., please append the dict
 name2alg = {
@@ -40,7 +41,8 @@ name2alg = {
     'dash': Dash,
     'vcc': VCC,
     'vcc_fixmatch': VCCFixMatch,
-    'vcc_simmatch': VCCSimMatch
+    'vcc_simmatch': VCCSimMatch,
+    'mlp_fixmatch': MLPFixMatch
     # 'mpl': MPL
 }
 
