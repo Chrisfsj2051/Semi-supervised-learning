@@ -47,16 +47,16 @@ name2alg = {
 }
 
 def get_algorithm(args, net_builder, tb_log, logger):
-    try:
-        alg = name2alg[args.algorithm](
-            args=args,
-            net_builder=net_builder,
-            tb_log=tb_log,
-            logger=logger
-        )
-        return alg
-    except KeyError as e:
-        print(f'Unknown algorithm: {str(e)}')
+    # try:
+    alg = name2alg[args.algorithm](
+        args=args,
+        net_builder=net_builder,
+        tb_log=tb_log,
+        logger=logger
+    )
+    return alg
+    # except Exception as e:
+    #     print(f'Unknown algorithm: {str(e)}')
 
 
 

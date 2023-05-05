@@ -20,6 +20,10 @@ def get_config():
     '''
     parser.add_argument('--disable_shm', default=False, action='store_true')
     '''
+    Label Noise Exp
+    '''
+    parser.add_argument('--label_noise_ratio', default=0.0, type=float)
+    '''
     MLP FixMatch Related
     '''
     parser.add_argument('--calc_weight_method', default='mlp', choices=['mlp', 'softmax'], type=str)

@@ -2,6 +2,9 @@
 # Licensed under the MIT License.
 
 import os
+import random
+
+import numpy as np
 import torchvision
 
 from torchvision import transforms
@@ -20,12 +23,11 @@ std['cifar100'] = [x / 255 for x in [68.2, 65.4, 70.4]]
 
 
 def get_cifar(args, alg, name, num_labels, num_classes, data_dir='./data', include_lb_to_ulb=True):
-    
     data_dir = os.path.join(data_dir, name.lower())
     dset = getattr(torchvision.datasets, name.upper())
     dset = dset(data_dir, train=True, download=True)
     data, targets = dset.data, dset.targets
-    
+
     crop_size = args.img_size
     crop_ratio = args.crop_ratio
 
@@ -49,16 +51,33 @@ def get_cifar(args, alg, name, num_labels, num_classes, data_dir='./data', inclu
     transform_val = transforms.Compose([
         transforms.Resize(crop_size),
         transforms.ToTensor(),
-        transforms.Normalize(mean[name], std[name],)
+        transforms.Normalize(mean[name], std[name], )
     ])
 
-    lb_data, lb_targets, ulb_data, ulb_targets = split_ssl_data(args, data, targets, num_classes, 
+    lb_data, lb_targets, ulb_data, ulb_targets = split_ssl_data(args, data, targets, num_classes,
                                                                 lb_num_labels=num_labels,
                                                                 ulb_num_labels=args.ulb_num_labels,
                                                                 lb_imbalance_ratio=args.lb_imb_ratio,
                                                                 ulb_imbalance_ratio=args.ulb_imb_ratio,
                                                                 include_lb_to_ulb=include_lb_to_ulb)
-    
+
+    if args.label_noise_ratio > 0.0:
+        ori_lb_targets = np.array(lb_targets)
+        lb_targets = np.array(lb_targets)
+        select_example = np.random.choice(list(range(num_labels)),
+                                          size=int(num_labels * args.label_noise_ratio),
+                                          replace=False)
+        while len(select_example):
+            new_lb_targets = np.random.choice(list(range(num_classes)),
+                                              size=len(select_example),
+                                              replace=True)
+            update_mask = (lb_targets[select_example] != new_lb_targets)
+            lb_targets[select_example[update_mask]] = new_lb_targets[update_mask]
+            select_example = select_example[~update_mask]
+
+        lb_targets = list(lb_targets)
+        assert (ori_lb_targets != lb_targets).sum() == int(num_labels * args.label_noise_ratio)
+
     lb_count = [0 for _ in range(num_classes)]
     ulb_count = [0 for _ in range(num_classes)]
     for c in lb_targets:

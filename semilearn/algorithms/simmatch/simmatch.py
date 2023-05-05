@@ -105,7 +105,7 @@ class SimMatch(AlgorithmBase):
         return model
     
     def set_ema_model(self):
-        ema_model = self.net_builder(num_classes=self.num_classes)
+        ema_model = self.net_builder(num_classes=self.num_classes, args=self.args)
         ema_model = SimMatch_Net(ema_model, proj_size=self.args.proj_size)
         ema_model.load_state_dict(self.model.state_dict())
         return ema_model
